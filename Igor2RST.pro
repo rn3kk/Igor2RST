@@ -25,7 +25,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        MainWindow.cpp
+        MainWindow.cpp \
+    Tab5Tone.cpp \
+    MemoryTableModel.cpp \
+    Tab2Tone.cpp \
+    MemoryDelegate.cpp \
+    ComboBox.cpp
 
 HEADERS += \
-        MainWindow.h
+        MainWindow.h \
+    Tab5Tone.h \
+    MemoryTableModel.h \
+    Tab2Tone.h \
+    MemoryDelegate.h \
+    ComboBox.h
