@@ -30,7 +30,7 @@ SOURCES += \
     MemoryTableModel.cpp \
     Tab2Tone.cpp \
     MemoryDelegate.cpp \
-    ComboBox.cpp
+    CheckBox.cpp
 
 HEADERS += \
         MainWindow.h \
@@ -38,4 +38,4 @@ HEADERS += \
     MemoryTableModel.h \
     Tab2Tone.h \
     MemoryDelegate.h \
-    ComboBox.h
+    CheckBox.h

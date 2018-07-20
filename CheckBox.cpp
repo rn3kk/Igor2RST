@@ -1,4 +1,4 @@
-#include "ComboBox.h"
+#include "CheckBox.h"
 
 #include <QCheckBox>
 #include <QHBoxLayout>

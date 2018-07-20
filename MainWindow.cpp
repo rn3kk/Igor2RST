@@ -43,7 +43,7 @@ MainWindow::MainWindow(QWidget *parent)
   memoryView->setItemDelegate(new MemoryDelegate);
   memoryView->resizeColumnsToContents();
 
-  setMinimumSize(300, 200);
+  setMinimumSize(600, 500);
 }
 
 MainWindow::~MainWindow()

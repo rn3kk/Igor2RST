@@ -3,15 +3,16 @@
 
 #include <QAbstractTableModel>
 
-const int ITEM_COUNT = 208;
-
 class MemoryTableModel : public QAbstractTableModel
 {
   Q_OBJECT
 public:
   MemoryTableModel();
+  ~MemoryTableModel();
 
   QByteArray memoryItem(int number);
+
+  static QStringList variants(int column);
 
   // QAbstractItemModel interface
 public:
@@ -22,25 +23,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override;
 
 private:
-  struct MemoryItem
-  {
-    bool compander;
-    bool scrambler;
-    bool scan;
-    bool del;
-    bool lock;
-    bool bandwidth;
-    double rxFrequence;
-    double txFrequence;
-    QString chName;
-    QString powerOut;
-    QString decode;
-    QString encode;
-    QString toneMode;
-    QString begin;
-    QString end;
-    QString call;
-  } m_memory[ITEM_COUNT];
+  struct MemoryItem *m_memory;
 };
 
 #endif // MEMORYTABLEMODEL_H
