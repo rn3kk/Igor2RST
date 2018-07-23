@@ -3,7 +3,9 @@
 #include "MemoryTableModel.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
+#include <QDebug>
 #include <QDoubleSpinBox>
 #include <QLineEdit>
 
@@ -19,25 +21,29 @@ void MemoryDelegate::paint(QPainter *painter,
 {
   QStyleOptionViewItem resultOption(option);
   int column = index.column();
+  QVariant data = index.data();
   if(index.row() == 0 || column == 0)
   {
     resultOption.backgroundBrush = m_header;
-//    QApplication::style()->drawControl(QStyle::CE_Header,
-//                                       &option, painter);
+    QApplication::style()->drawControl(QStyle::CE_ItemViewItem,
+                                       &resultOption, painter);
   }
   else if(column > 11 || column == 10 || column == 9)
   {
-    QItemDelegate::drawCheck(painter, option, option.rect,
-                             index.data().toBool() ? Qt::Checked
-                                                   : Qt::Unchecked);
+//    QItemDelegate::drawCheck(painter, option, option.rect,
+//                             data.toBool() ? Qt::Checked
+//                                           : Qt::Unchecked);
+//    return;
+    QStyleOptionButton style;
+    style.rect = option.rect;
+    style.state = index.data().toBool() ? QStyle::State_On
+                                        : QStyle::State_Off;
+    QApplication::style()->drawControl(QStyle::CE_CheckBox,
+                                       &style, painter);
     return;
-//    QStyleOptionButton style;
-//    style.rect = option.rect;
-//    style.state = index.data().toBool() ? QStyle::State_On
-//                                        : QStyle::State_Off;
-//    QApplication::style()->drawControl(QStyle::CE_CheckBox,
-//                                       &style, painter);
   }
+  QItemDelegate::paint(painter, resultOption, index);
+  return;
   resultOption.text = index.data().toString();
   QApplication::style()->drawControl(QStyle::CE_ItemViewItem,
                                        &resultOption, painter);
@@ -60,14 +66,14 @@ QWidget *MemoryDelegate::createEditor(QWidget *parent,
     QDoubleSpinBox *widget = new QDoubleSpinBox(parent);
     widget->setMinimum(33.0);
     widget->setMaximum(48.5);
-    widget->setSingleStep(0.05);
+    widget->setSingleStep(0.00025);
+    widget->setDecimals(5);
     return widget;
   }
   case 4:
   {
     QLineEdit *widget = new QLineEdit(parent);
-    static QRegExpValidator *validator = new QRegExpValidator(QRegExp("[A-Z0-9]{,7}"));
-    widget->setValidator(validator);
+    widget->setInputMask(">nnnnnnn");
     return widget;
   }
   case 9:
@@ -78,13 +84,15 @@ QWidget *MemoryDelegate::createEditor(QWidget *parent,
   case 15:
   case 16:
   {
-    CheckBox *widget = new CheckBox(parent);
+    QCheckBox *widget = new QCheckBox(parent);
     return widget;
   }
   default:
   {
     QComboBox *widget = new QComboBox(parent);
-    widget->addItems(MemoryTableModel::variants(index.column()));
+    MemoryTableModel *model = qobject_cast<MemoryTableModel*>(
+          const_cast<QAbstractItemModel*>(index.model()));
+    widget->addItems(model->variants(index.column(), index.row() - 1));
     return widget;
   }
   }
@@ -101,9 +109,9 @@ void MemoryDelegate::setEditorData(QWidget *editor, const QModelIndex &index) co
   QDoubleSpinBox *spinBox = qobject_cast<QDoubleSpinBox*>(editor);
   if(spinBox != nullptr)
     spinBox->setValue(index.data(Qt::EditRole).toDouble());
-  CheckBox *check = qobject_cast<CheckBox*>(editor);
+  QCheckBox *check = qobject_cast<QCheckBox*>(editor);
   if(check != nullptr)
-    check->setValue(index.data(Qt::EditRole).toBool());
+    check->setChecked(index.data(Qt::EditRole).toBool());
 }
 
 void MemoryDelegate::setModelData(QWidget *editor,
@@ -120,8 +128,8 @@ void MemoryDelegate::setModelData(QWidget *editor,
   QDoubleSpinBox *spinBox = qobject_cast<QDoubleSpinBox*>(editor);
   if(spinBox != nullptr)
     value = spinBox->value();
-  CheckBox *check = qobject_cast<CheckBox*>(editor);
+  QCheckBox *check = qobject_cast<QCheckBox*>(editor);
   if(check != nullptr)
-    value = check->value();
+    value = check->isChecked();
   model->setData(index, value);
 }

@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent)
-  : QMainWindow(parent), m_memory(new MemoryTableModel)
+  : QMainWindow(parent)
 {
   QWidget *central = new QWidget(this);
   setCentralWidget(central);
@@ -35,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
   tabs->addTab(tr("2 TONE"));
   tabs->addTab(tr("5 TONE"));
 
+  m_memory = new MemoryTableModel(*tone5);
   memoryView->setModel(m_memory);
   memoryView->horizontalHeader()->hide();
   memoryView->verticalHeader()->hide();
@@ -43,7 +44,7 @@ MainWindow::MainWindow(QWidget *parent)
   memoryView->setItemDelegate(new MemoryDelegate);
   memoryView->resizeColumnsToContents();
 
-  setMinimumSize(600, 500);
+  setMinimumSize(1040, 500);
 }
 
 MainWindow::~MainWindow()

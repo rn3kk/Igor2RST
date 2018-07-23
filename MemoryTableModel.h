@@ -2,17 +2,18 @@
 #define MEMORYTABLEMODEL_H
 
 #include <QAbstractTableModel>
+class Tab5Tone;
 
 class MemoryTableModel : public QAbstractTableModel
 {
   Q_OBJECT
 public:
-  MemoryTableModel();
+  MemoryTableModel(Tab5Tone &tab5);
   ~MemoryTableModel();
 
   QByteArray memoryItem(int number);
 
-  static QStringList variants(int column);
+  QStringList variants(int column, int row);
 
   // QAbstractItemModel interface
 public:
@@ -24,6 +25,7 @@ public:
 
 private:
   struct MemoryItem *m_memory;
+  Tab5Tone &m_5tone;
 };
 
 #endif // MEMORYTABLEMODEL_H

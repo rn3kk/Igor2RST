@@ -1,11 +1,16 @@
 #include "MemoryTableModel.h"
+#include "Tab5Tone.h"
+
+#include <QDebug>
 
 struct MemoryItem
 {
   qint16 decode = 0x0000;
   qint16 encode = 0x0000;
-  double rxFrequence;
-  double txFrequence;
+  bool rxFrStep625;
+  double rxFrequence = 33.0;
+  bool txFrStep625;
+  double txFrequence = 33.0;
   qint8 compander = 0;
   qint8 scrambler = 0;
   qint8 scan = 0;
@@ -14,10 +19,10 @@ struct MemoryItem
   qint8 bandwidth = 0;
   qint8 powerOut = 0;
   qint8 toneMode = 0;
+  qint8 call;
   bool begin = false;
   bool end = false;
   QString chName;
-  QString call;
 };
 
 static const int ITEM_COUNT = 208;
@@ -26,7 +31,7 @@ static const QMap<QString, qint8> bandwidthMap = {{"W", 0}, {"N", 0x16}};
 static const QMap<QString, qint8> powerOutMap = {{"H", 2}, {"M", 1}, {"L", 0}};
 static const QMap<QString, qint16>  decodeMap =
 {
-  {"OFF", 0x0000}, {"01-67.0", 0x02C9}, {"02-71.9", 0x02CA}, {"03-74.4", 0x02CB},
+  {" OFF", 0x0000}, {"01-67.0", 0x02C9}, {"02-71.9", 0x02CA}, {"03-74.4", 0x02CB},
   {"04-77.0", 0x02CC}, {"05-79.7", 0x02CD}, {"06-82.5", 0x02CE}, {"07-85.4", 0x02CF},
   {"08-88.5", 0x02D0}, {"09-91.5", 0x02D1}, {"10-94.8", 0x02D2}, {"11-97.4", 0x02D3},
   {"12-100.0", 0x02D4}, {"13-103.5", 0x02D5}, {"14-107.2", 0x02D6},
@@ -148,10 +153,17 @@ static const QMap<QString, qint16>  encodeMap =
 };
 static const QMap<QString, qint8> toneModeMap = {{"OFF", 0}, {"2TONE", 0x01},
                                                  {"5TONE", 0x02}};
+const QMap<QString, char> codeMap = {
+  {"AB", 0}, {"AC", 1}, {"AD", 2}, {"BA", 3}, {"BC", 4},
+  {"BD", 5}, {"CA", 6}, {"CB", 7}, {"CD", 8}, {"DA", 9},
+  {"DB", 10}, {"DC", 11}, {"AA", 12}, {"BB", 13},
+  {"CC", 14}, {"DD", 15}
+};
 
-MemoryTableModel::MemoryTableModel() :
+MemoryTableModel::MemoryTableModel(Tab5Tone &tab5) :
   QAbstractTableModel(),
-  m_memory(new MemoryItem[ITEM_COUNT])
+  m_memory(new MemoryItem[ITEM_COUNT]),
+  m_5tone(tab5)
 {}
 
 MemoryTableModel::~MemoryTableModel()
@@ -159,7 +171,7 @@ MemoryTableModel::~MemoryTableModel()
   delete[] m_memory;
 }
 
-QStringList MemoryTableModel::variants(int column)
+QStringList MemoryTableModel::variants(int column, int row)
 {
   switch(column)
   {
@@ -168,6 +180,12 @@ QStringList MemoryTableModel::variants(int column)
   case 6: return decodeMap.keys();
   case 7: return encodeMap.keys();
   case 8: return toneModeMap.keys();
+  case 11:
+    switch(m_memory[row].toneMode)
+    {
+    case 1: return codeMap.keys();
+    case 2: return m_5tone.numbers();
+    }
   default: return QStringList();
   }
 }
@@ -192,23 +210,23 @@ QVariant MemoryTableModel::data(const QModelIndex &index, int role) const
   {
     switch(column)
     {
-    case 0: return "Ch num";
-    case 1: return "RX freq";
-    case 2: return "TX freq";
-    case 3: return "W/N";
-    case 4: return "CH. Name";
-    case 5: return "Pout";
-    case 6: return "QT/DQT Dec";
-    case 7: return "QT/DQT Enc";
-    case 8: return "Tone Mode";
-    case 9: return "Begin";
-    case 10: return "End";
-    case 11: return "Call";
-    case 12: return "Compander";
-    case 13: return "Scrambler";
-    case 14: return "Scan";
-    case 15: return "Del ch";
-    case 16: return "Lock";
+    case 0: return tr("Ch num");
+    case 1: return tr("RX freq         ");
+    case 2: return tr("TX freq         ");
+    case 3: return tr("W/N");
+    case 4: return tr("CH. Name     ");
+    case 5: return tr("Pout");
+    case 6: return tr("QT/DQT Dec");
+    case 7: return tr("QT/DQT Enc");
+    case 8: return tr("Tone Mode");
+    case 9: return tr("Begin");
+    case 10: return tr("End");
+    case 11: return tr("Call        ");
+    case 12: return tr("Compander");
+    case 13: return tr("Scrambler");
+    case 14: return tr("Scan");
+    case 15: return tr("Del ch");
+    case 16: return tr("Lock");
     }
   }
   if(column == 0)
@@ -219,20 +237,34 @@ QVariant MemoryTableModel::data(const QModelIndex &index, int role) const
   }
   if(role == Qt::DisplayRole && m_memory[row - 1].chName.isEmpty())
     return QVariant();
+  if(role == Qt::EditRole && m_memory[row - 1].chName.isEmpty())
+    m_memory[row - 1].chName = tr("CHNAME");
   switch(column)
   {
-  case 1: return m_memory[row - 1].rxFrequence;
-  case 2: return m_memory[row - 1].txFrequence;
+  case 1:
+    if(role == Qt::EditRole)
+      return m_memory[row - 1].rxFrequence;
+    return QString::number(m_memory[row - 1].rxFrequence, 'f', 5) + tr("MHz");
+  case 2:
+    if(role == Qt::EditRole)
+      return m_memory[row - 1].txFrequence;
+    return QString::number(m_memory[row - 1].txFrequence, 'f', 5) + tr("MHz");
   case 3: return bandwidthMap.key(m_memory[row - 1].bandwidth);
-  case 4: return m_memory[row - 1].chName;
+  case 4:
+    return m_memory[row - 1].chName;
   case 5: return powerOutMap.key(m_memory[row - 1].powerOut);
   case 6: return decodeMap.key(m_memory[row - 1].decode);
   case 7: return encodeMap.key(m_memory[row - 1].encode);
   case 8: return toneModeMap.key(m_memory[row - 1].toneMode);
   case 9: return m_memory[row - 1].begin;
   case 10: return m_memory[row - 1].end;
-#warning not full released
-//  case 11: return "Call";
+  case 11:
+    switch(m_memory[row - 1].toneMode)
+    {
+    case 1: return codeMap.key(m_memory[row - 1].call);
+    case 2: return QString::number(m_memory[row - 1].call);
+    default: return QVariant();
+    }
   case 12: return m_memory[row - 1].compander;
   case 13: return m_memory[row - 1].scrambler;
   case 14: return m_memory[row - 1].scan;
@@ -242,6 +274,54 @@ QVariant MemoryTableModel::data(const QModelIndex &index, int role) const
   return QVariant();
 }
 
+void calculateFR(double value, bool rx, MemoryItem &memory)
+{
+  value *= 1000;
+  double n5 = value / 5;
+  n5 = round(n5);
+  n5 = 5 * n5;
+  double n625 = value / 6.25;
+  n625 = round(n625);
+  n625 = 6.25 * n625;
+  double k = pow((value - n5) / (value - n625), 2);
+  n5 /= 1000;
+  n625 /= 1000;
+  if(n5 < 33.0)
+    n5 = 33.0;
+  if(n625 < 33.0)
+    n625 = 33.0;
+  if(n5 > 48.5)
+    n5 = 48.5;
+  if(n625 > 48.5)
+    n625 = 48.5;
+  if(rx)
+  {
+    if(k > 1)
+    {
+      memory.rxFrequence = n625;
+      memory.rxFrStep625 = true;
+    }
+    else
+    {
+      memory.rxFrequence = n5;
+      memory.rxFrStep625 = false;
+    }
+  }
+  else
+  {
+    if(k > 1)
+    {
+      memory.txFrequence = n625;
+      memory.txFrStep625 = true;
+    }
+    else
+    {
+      memory.txFrequence = n5;
+      memory.txFrStep625 = false;
+    }
+  }
+}
+
 bool MemoryTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
   int row = index.row();
@@ -249,15 +329,16 @@ bool MemoryTableModel::setData(const QModelIndex &index, const QVariant &value, 
   if(row == 0 || column == 0)
     return false;
 
-  emit layoutAboutToBeChanged();
+  QModelIndex start = MemoryTableModel::index(row, 7),
+      end = MemoryTableModel::index(row + 1, 16);
   row--;
   switch(column)
   {
-#warning not full released
-/*  case 1:
-    m_memory[row - 1].rxFrequence;
+  case 1:
+    calculateFR(value.toDouble(), true, m_memory[row]);
     return true;
-  case 2: return m_memory[row - 1].txFrequence;*/
+  case 2:
+    calculateFR(value.toDouble(), false, m_memory[row]);
   case 3:
     m_memory[row].bandwidth = bandwidthMap[value.toString()];
     emit layoutChanged();
@@ -280,16 +361,25 @@ bool MemoryTableModel::setData(const QModelIndex &index, const QVariant &value, 
     return true;
   case 8:
     m_memory[row].toneMode = toneModeMap[value.toString()];
-//    emit dataChanged(index, createIndex(row, column+2));
-    emit layoutChanged();
+    emit dataChanged(index, index);
     return true;
   case 9:
     m_memory[row].begin = value.toBool() ? 0x04 : 0;
     emit layoutChanged();
     return true;
   case 10: m_memory[row].end = value.toBool() ? 0x08 : 0;
-#warning not full released
-//  case 11: return "Call";
+  case 11:
+    switch(m_memory[row].toneMode)
+    {
+    case 1:
+      m_memory[row].call = codeMap[value.toString()];
+      emit dataChanged(index, index);
+      return true;
+    case 2:
+      m_memory[row].call = value.toInt();
+      emit dataChanged(index, index);
+      return true;
+    }
   case 12:
     m_memory[row].compander = value.toBool() ? 0x04 : 0;
     emit layoutChanged();
@@ -304,15 +394,14 @@ bool MemoryTableModel::setData(const QModelIndex &index, const QVariant &value, 
     return true;
   case 15:
     m_memory[row].del = value.toBool() ? 0x80 : 0;
-    emit layoutChanged();
+    emit dataChanged(start, end);
     return true;
   case 16:
     m_memory[row].lock = value.toBool() ? 0x40 : 0;
-    emit layoutChanged();
+    emit dataChanged(start, end);
     return true;
   }
   emit layoutChanged();
-#warning not released
   return false;
 }
 
@@ -321,14 +410,20 @@ Qt::ItemFlags MemoryTableModel::flags(const QModelIndex &index) const
   if(!index.isValid())
     return Qt::NoItemFlags;
   int column = index.column();
-  if(index.row() == 0 || column == 0)
+  int row = index.row();
+  if(row == 0 || column == 0)
   {
     return Qt::ItemIsEnabled;
-  }
-  if(column < 11 && column > 8 && m_memory[index.row() - 1].toneMode == 0)
+  }  
+  row--;
+  if(column <= 11 && column > 8 && m_memory[row].toneMode == 0)
   {
-    return Qt::NoItemFlags;
+    return Qt::ItemIsAutoTristate;
   }
+//  if(column != 4 && m_memory[row].chName.isEmpty())
+//  {
+//    return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+//  }
   return Qt::ItemIsEnabled | Qt::ItemIsEditable | Qt::ItemIsSelectable;
 }
 

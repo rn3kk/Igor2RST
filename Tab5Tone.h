@@ -7,6 +7,7 @@
 class QComboBox;
 class QSpinBox;
 class QDoubleSpinBox;
+class QLineEdit;
 
 class Tab5Tone : public QWidget
 {
@@ -14,14 +15,19 @@ class Tab5Tone : public QWidget
 public:
   explicit Tab5Tone(QWidget *parent = nullptr);
 
+  QStringList numbers();
+
 signals:
 
 public slots:
 
 private:
-  QComboBox *m_numbers[100];
   QComboBox *m_decodeStandart;
-//  QComboBox *
+  QSpinBox *m_pretime;
+  QDoubleSpinBox *m_response;
+  QPair<QLineEdit*, QComboBox*> m_decode[4];
+  QLineEdit *m_start, *m_end;
+  QLineEdit *m_specialCall[100];
 };
 
 #endif // TAB5TONE_H
