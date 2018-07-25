@@ -11,6 +11,32 @@ RadioDevice::RadioDevice(QObject *parent) :
 {
 }
 
+qint16 crc(const QByteArray &data, int numByte)
+{
+  qint16 w0 = 0xffff, w1, w2, w3, w4 = 0;
+  do
+  {
+    w1 = data[w4++];
+    w2 = 0x00ff;
+    w1 &= w2;
+    w0 ^= w1;
+    w3 = 0x0009;
+    while(!--w3)
+    {
+      bool c = w0 & 0x0001;
+      w0 >>= 1;
+      if(c)
+      {
+        w2 = 0x8005;
+        w0 ^= w2;
+      }
+    }
+  }
+  while(--numByte);
+  w0 = ((w0 << 8) & 0xff00) | ((w0 >> 8) & 0x00ff);
+  return w0;
+}
+
 void RadioDevice::reconnect()
 {
   if(m_port != nullptr)
