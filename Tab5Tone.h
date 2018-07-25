@@ -7,7 +7,7 @@
 class QComboBox;
 class QSpinBox;
 class QDoubleSpinBox;
-class QLineEdit;
+class LineEdit;
 
 class Tab5Tone : public QWidget
 {
@@ -25,9 +25,9 @@ private:
   QComboBox *m_decodeStandart;
   QSpinBox *m_pretime;
   QDoubleSpinBox *m_response;
-  QPair<QLineEdit*, QComboBox*> m_decode[4];
-  QLineEdit *m_start, *m_end;
-  QLineEdit *m_specialCall[100];
+  QPair<LineEdit*, QComboBox*> m_decode[4];
+  LineEdit *m_start, *m_end;
+  LineEdit *m_specialCall[100];
 };
 
 #endif // TAB5TONE_H

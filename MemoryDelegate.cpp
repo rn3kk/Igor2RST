@@ -1,4 +1,5 @@
 #include "CheckBox.h"
+#include "LineEdit.h"
 #include "MemoryDelegate.h"
 #include "MemoryTableModel.h"
 
@@ -72,8 +73,10 @@ QWidget *MemoryDelegate::createEditor(QWidget *parent,
   }
   case 4:
   {
-    QLineEdit *widget = new QLineEdit(parent);
-    widget->setInputMask(">nnnnnnn");
+    LineEdit *widget = new LineEdit(parent);
+    static QRegExpValidator validator(QRegExp("[A-Z0-9 ]{,7}"));
+    widget->setValidator(&validator);
+//    widget->setInputMask(">nnnnnnn");
     return widget;
   }
   case 9:

@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -30,7 +30,9 @@ SOURCES += \
     MemoryTableModel.cpp \
     Tab2Tone.cpp \
     MemoryDelegate.cpp \
-    CheckBox.cpp
+    CheckBox.cpp \
+    RadioDevice.cpp \
+    LineEdit.cpp
 
 HEADERS += \
         MainWindow.h \
@@ -38,4 +40,6 @@ HEADERS += \
     MemoryTableModel.h \
     Tab2Tone.h \
     MemoryDelegate.h \
-    CheckBox.h
+    CheckBox.h \
+    RadioDevice.h \
+    LineEdit.h

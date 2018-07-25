@@ -1,3 +1,4 @@
+#include "LineEdit.h"
 #include "Tab5Tone.h"
 
 #include <QComboBox>
@@ -5,7 +6,7 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
-#include <QLineEdit>
+//#include <QLineEdit>
 #include <QScrollArea>
 #include <QVBoxLayout>
 
@@ -16,7 +17,7 @@ const QMap<QString, char> actionMap = {
 
 Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QComboBox),
   m_pretime(new QSpinBox), m_response(new QDoubleSpinBox),
-  m_start(new QLineEdit("12345")), m_end(new QLineEdit("12345"))
+  m_start(new LineEdit("12345")), m_end(new LineEdit("12345"))
 {
 
   QHBoxLayout *hl = new QHBoxLayout(this);
@@ -34,8 +35,10 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
   QGridLayout *gl = new QGridLayout(box);
   for(int i=0; i<4; i++)
   {
-    QLineEdit *code = new QLineEdit;
-    code->setInputMask(">HHHHH");
+    LineEdit *code = new LineEdit;
+    static QRegExpValidator validator(QRegExp("[0-9A-F]{,5}"));
+    code->setValidator(&validator);
+//    code->setInputMask(">HHHHH");
     code->setText("12345");
     gl->addWidget(code, i, 0);
     QComboBox *action = new QComboBox;
@@ -51,17 +54,19 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
   scrol->setWidgetResizable(true);
   fl = new QFormLayout(w);
   fl->addRow(tr("No"), new QLabel(tr("Special Call")));
+  static QRegExpValidator validator(QRegExp("[0-9A-F]{,12}"));
   for(int i=1; i<101; i++)
   {
-    QLineEdit *edit = new QLineEdit;
-//    static QRegExpValidator validator(QRegExp("[0-9A-F]{,12}"));
-//    edit ->setValidator(&validator);
-    edit->setInputMask(">HHHHHHHHHHHH");
+    LineEdit *edit = new LineEdit;
+    edit ->setValidator(&validator);
+//    edit->setInputMask(">HHHHHHHHHHHH");
     fl->addRow(QString::number(i), edit);
     m_specialCall[i - 1] = edit;
   }
-  m_start->setInputMask(">HHHHHHHHHHHH");
-  m_end->setInputMask(">HHHHHHHHHHHH");
+  m_start->setValidator(&validator);
+//  m_start->setInputMask(">HHHHHHHHHHHH");
+  m_end->setValidator(&validator);
+//  m_end->setInputMask(">HHHHHHHHHHHH");
   m_pretime->setMinimum(500);
   m_pretime->setMaximum(1000);
   m_pretime->setSingleStep(100);
