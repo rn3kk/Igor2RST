@@ -11,9 +11,9 @@ RadioDevice::RadioDevice(QObject *parent) :
 {
 }
 
-qint16 crc(const QByteArray &data, int numByte)
+quint16 crc(const QByteArray &data, int numByte)
 {
-  qint16 w0 = 0xffff, w1, w2, w3, w4 = 0;
+  quint16 w0 = 0xffff, w1, w2, w3, w4 = 0;
   do
   {
     w1 = data[w4++];
@@ -21,7 +21,7 @@ qint16 crc(const QByteArray &data, int numByte)
     w1 &= w2;
     w0 ^= w1;
     w3 = 0x0009;
-    while(!--w3)
+    while(--w3)
     {
       bool c = w0 & 0x0001;
       w0 >>= 1;
@@ -39,6 +39,17 @@ qint16 crc(const QByteArray &data, int numByte)
 
 void RadioDevice::reconnect()
 {
+  const char dataPtr[] = {
+//    '\x21', '\x11', '\x00', '\x0a', '\x41', '\x52',
+//                     '\x2d', '\x34', '\x33', '\x76', '\x32', '\x2e',
+//                     '\x30', '\x35', '\xed', '\xe2'
+
+    '\x21', '\x09', '\x01', '\xBF', '\x00', '\x14', '\x00', '\x24', '\x20',
+    '\xA8', '\x20', '\xA8', '\x02', '\xED', '\x02', '\xED', '\x00', '\x00',
+    '\x53', '\x4B', '\x4F', '\x52', '\x41', '\x4A', '\x41', '\x00', '\x9A', '\xB0'
+  };
+  QByteArray data(dataPtr, 28);
+  quint16 result = crc(data, 26);
   if(m_port != nullptr)
   {
     m_port->close();

@@ -20,6 +20,7 @@ public:
 signals:
 
 public slots:
+  void newDecodeStandart(const QString &value);
 
 private:
   QComboBox *m_decodeStandart;
@@ -28,6 +29,7 @@ private:
   QPair<LineEdit*, QComboBox*> m_decode[4];
   LineEdit *m_start, *m_end;
   LineEdit *m_specialCall[100];
+  class QRegExpValidator *m_validator;
 };
 
 #endif // TAB5TONE_H

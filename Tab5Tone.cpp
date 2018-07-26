@@ -14,10 +14,28 @@ const QMap<QString, char> actionMap = {
   {"None", 0}, {"Squelch Off", 1},
   {"Beep Tone", 2}, {"Beep Tone & Respond", 3}
 };
+typedef QPair<qint16, QRegExp> DecodeStandart;
+const QMap<QString, DecodeStandart> decodeStandartMap = {
+  {"EEA", {1, QRegExp("[0-9A-F]{,12}")}},
+  {"EIA", {2, QRegExp("[0-9A-E]{,12}")}},
+  {"CCIT", {3, QRegExp("[0-9A-E]{,12}")}},
+  {"ZVEI1", {4, QRegExp("[0-9A-F]{,12}")}},
+  {"ZVEI3", {5, QRegExp("[0-9AE]{,12}")}},
+  {"PZVEI1", {6, QRegExp("[0-9A-F]{,12}")}},
+  {"DVEI1", {7, QRegExp("[0-9A-F]{,12}")}},
+  {"PDVEI1", {8, QRegExp("[0-9A-E]{,12}")}},
+  {"CCIR1", {9, QRegExp("[0-9A-F]{,12}")}},
+  {"CCIR2", {10, QRegExp("[0-9A-F]{,12}")}},
+  {"PCCIR", {11, QRegExp("[0-9A-E]{,12}")}},
+  {"EUROSIGNAL", {12, QRegExp("[0-9E]{,12}")}},
+  {"NATEL", {13, QRegExp("[0-9A-F]{,12}")}},
+  {"MODAL", {14, QRegExp("[0-9A-E]{,12}")}},
+};
 
 Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QComboBox),
   m_pretime(new QSpinBox), m_response(new QDoubleSpinBox),
-  m_start(new LineEdit("12345")), m_end(new LineEdit("12345"))
+  m_start(new LineEdit("12345")), m_end(new LineEdit("12345")),
+  m_validator(new QRegExpValidator(QRegExp("[0-9A-F]{,12}")))
 {
 
   QHBoxLayout *hl = new QHBoxLayout(this);
@@ -58,7 +76,7 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
   for(int i=1; i<101; i++)
   {
     LineEdit *edit = new LineEdit;
-    edit ->setValidator(&validator);
+    edit ->setValidator(m_validator);
 //    edit->setInputMask(">HHHHHHHHHHHH");
     fl->addRow(QString::number(i), edit);
     m_specialCall[i - 1] = edit;
@@ -75,6 +93,11 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
   m_response->setMaximum(3);
   m_response->setSingleStep(0.5);
   m_response->setSuffix(tr("s"));
+
+  m_decodeStandart->addItems(decodeStandartMap.keys());
+  connect(m_decodeStandart, SIGNAL(currentTextChanged(QString)),
+          this, SLOT(newDecodeStandart(QString)));
+  m_decodeStandart->setCurrentText("EEA");
 }
 
 QStringList Tab5Tone::numbers()
@@ -84,4 +107,9 @@ QStringList Tab5Tone::numbers()
     if(!m_specialCall[i]->text().isEmpty())
       list << QString::number(i + 1);
   return list;
+}
+
+void Tab5Tone::newDecodeStandart(const QString &value)
+{
+  m_validator->setRegExp(decodeStandartMap[value].second);
 }
