@@ -14,6 +14,9 @@ class Tab2Tone : public QWidget
 public:
   explicit Tab2Tone(QWidget *parent = nullptr);
 
+  QByteArray toWrite() const;
+  void read(QByteArray &data);
+
 signals:
 
 private:

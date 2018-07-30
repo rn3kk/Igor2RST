@@ -5,6 +5,7 @@
 #include "Tab2Tone.h"
 #include "Tab5Tone.h"
 
+#include <QFile>
 #include <QFormLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -12,6 +13,7 @@
 #include <QStackedLayout>
 #include <QTabBar>
 #include <QTableView>
+#include <QTextStream>
 #include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -84,10 +86,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::read()
 {
+#warning not released
 }
 
 void MainWindow::write()
 {
+#warning not released
 }
 
 void MainWindow::radioConnect(const QString &name, const QString &version)

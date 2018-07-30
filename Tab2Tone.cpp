@@ -6,13 +6,13 @@
 #include <QGroupBox>
 #include <qcombobox.h>
 
-const QMap<QString, char> codeMap = {
+const QMap<QString, quint8> codeMap = {
   {"AB", 0}, {"AC", 1}, {"AD", 2}, {"BA", 3}, {"BC", 4},
   {"BD", 5}, {"CA", 6}, {"CB", 7}, {"CD", 8}, {"DA", 9},
   {"DB", 10}, {"DC", 11}, {"AA", 12}, {"BB", 13},
   {"CC", 14}, {"DD", 15}
 };
-const QMap<QString, char> actionMap = {
+const QMap<QString, quint8> actionMap = {
   {"None", 0}, {"Squelch Off", 1},
   {"Beep Tone", 2}, {"Beep Tone & Respond", 3}
 };
@@ -80,4 +80,64 @@ Tab2Tone::Tab2Tone(QWidget *parent) :
   m_start->setCurrentText("AB");
   m_end->addItems(codeMap.keys());
   m_end->setCurrentText("AB");
+}
+
+QByteArray Tab2Tone::toWrite() const
+{
+  QByteArray data;
+  QDataStream stream(&data, QIODevice::WriteOnly);
+  stream.setByteOrder(QDataStream::LittleEndian);
+  quint16 value = m_a->value();
+  stream << value;
+  value = m_b->value();
+  stream << value;
+  value = m_c->value();
+  stream << value;
+  value = m_d->value();
+  stream << value;
+  value = m_pretime->value();
+  stream << value;
+  value = m_response->value() * 1000;
+  stream << value;
+  for(int i=0; i<4; i++)
+    stream << actionMap[m_decode[i].second->currentText()]
+        << codeMap[m_decode[i].first->currentText()];
+  value = codeMap[m_start->currentText()];
+  stream << value;
+  value = codeMap[m_end->currentText()];
+  stream << value;
+  return data;
+}
+
+void Tab2Tone::read(QByteArray &data)
+{
+  QDataStream stream(&data, QIODevice::ReadOnly);
+  stream.setByteOrder(QDataStream::LittleEndian);
+  quint16 value;
+  stream >> value;
+  m_a->setValue(value);
+  stream >> value;
+  m_b->setValue(value);
+  stream >> value;
+  m_c->setValue(value);
+  stream >> value;
+  m_d->setValue(value);
+  stream >> value;
+  m_pretime->setValue(value);
+  stream >> value;
+  m_response->setValue(value / 1000.0);
+  quint8 ch;
+  for(int i=0; i<4; i++)
+  {
+    stream >> ch;
+    m_decode[i].second->setCurrentText(actionMap.key(ch));
+    stream >> ch;
+    m_decode[i].first->setCurrentText(codeMap.key(ch));
+  }
+  stream >> value;
+  ch = value;
+  m_start->setCurrentText(codeMap.key(ch));
+  stream >> value;
+  ch = value;
+  m_end->setCurrentText(codeMap.key(ch));
 }

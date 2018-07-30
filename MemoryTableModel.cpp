@@ -5,11 +5,12 @@
 
 struct MemoryItem
 {
+  bool changed = false;
   qint16 decode = 0x0000;
   qint16 encode = 0x0000;
-  bool rxFrStep625;
+  bool rxFrStep625 = false;
   double rxFrequence = 33.0;
-  bool txFrStep625;
+  bool txFrStep625 = false;
   double txFrequence = 33.0;
   qint8 compander = 0;
   qint8 scrambler = 0;
@@ -19,9 +20,9 @@ struct MemoryItem
   qint8 bandwidth = 0;
   qint8 powerOut = 0;
   qint8 toneMode = 0;
-  qint8 call;
-  bool begin = false;
-  bool end = false;
+  qint8 call = 0;
+  qint8 begin = 0;
+  qint8 end = 0;
   QString chName;
 };
 
@@ -171,6 +172,130 @@ MemoryTableModel::~MemoryTableModel()
   delete[] m_memory;
 }
 
+void MemoryTableModel::read(const QByteArrayList &data)
+{
+  if(data.size() < ITEM_COUNT)
+  {
+    qCritical() << "memory item data is smal";
+    return;
+  }
+  for(int i = 0; i < ITEM_COUNT; i++)
+    setMemoryItem(data[i], i);
+}
+
+QByteArrayList MemoryTableModel::toWrite(bool toFile) const
+{
+  QByteArrayList list;
+  for(int i=0; i < ITEM_COUNT; i++)
+    if(toFile)
+      list << memoryItem(i);
+    else if(m_memory[i].changed)
+    {
+      QByteArray data;
+      if(i > 199)
+      {
+        data.append('\x0c');
+        quint8 num = i - 199;
+        data.append(num);
+      }
+      else
+      {
+        data.append('\x01');
+        quint8 num = i;
+        data.append(num);
+      }
+      data.append('\0').append(0x14);
+      data.append(memoryItem(i));
+      list << data;
+    }
+  return list;
+}
+
+QByteArray MemoryTableModel::memoryItem(int number) const
+{
+  MemoryItem &mem = m_memory[number];
+  QByteArray data;
+  if(number > 199)
+  {
+    data.append('\x0c');
+    quint8 num = number - 199;
+    data.append(num);
+  }
+  else
+  {
+    data.append('\x01');
+    quint8 num = number;
+    data.append(num);
+  }
+  data.append('\0').append(0x14);
+  if(mem.chName.isEmpty())
+  {
+    data.append(data.fill(0xff, 20));
+  }
+  else
+  {
+    data.append(mem.del | mem.lock | mem.scan);
+    data.append('$');
+    quint16 freq = round(mem.rxFrequence *
+                         (mem.rxFrStep625 ? 6250 : 5000));
+    data.append(((mem.rxFrStep625 ? 0x8000 : 0x0000) |
+                (freq & 0xff00)) >> 8);
+    data.append(freq & 0x00ff);
+    freq = round(mem.txFrequence *
+                 (mem.txFrStep625 ? 6250 : 5000));
+    data.append(((mem.rxFrStep625 ? 0x8000: 0x0000) |
+                (freq & 0xff00)) >> 8);
+    data.append(freq & 0x00ff);
+    data.append((mem.decode & 0xff00) >> 8);
+    data.append(mem.decode & 0x00ff);
+    data.append((mem.encode & 0xff00) >> 8);
+    data.append(mem.encode & 0x00ff);
+    data.append(mem.begin | mem.end | mem.toneMode);
+    data.append(mem.bandwidth | mem.scrambler |
+                mem.compander | mem.powerOut);
+    QByteArray name = mem.chName.toLatin1();
+    while(name.size() < 7)
+      name.append(' ');
+    data.append(name);
+    data.append(mem.call);
+  }
+  return data;
+}
+
+void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
+{
+  MemoryItem &mem = m_memory[number];
+  mem.del = mem.lock = mem.scan = data[0];
+  quint16 freq = data[2];
+  freq <<= 8;
+  freq |= data[3];
+  mem.rxFrStep625 = freq & 0x8000;
+  mem.rxFrequence = (freq & 0x4fff) /
+      (mem.rxFrStep625 ? 6250 : 5000);
+  freq = data[4];
+  freq = (freq << 8) & 0xff00;
+  freq |= data[5];
+  mem.txFrStep625 = freq & 0x8000;
+  mem.txFrequence = (freq & 0x4fff) /
+      (mem.txFrStep625 ? 6250 : 5000);
+  mem.decode = data[6];
+  mem.decode = (mem.decode << 8) & 0xff00;
+  mem.decode |= data[7];
+  mem.encode = data[8];
+  mem.encode = (mem.encode << 8) & 0xff00;
+  mem.encode |= data[9];
+  mem.begin = mem.end = mem.toneMode = data[10];
+  mem.bandwidth = mem.scrambler = mem.compander = mem.powerOut = data[11];
+  QString str;
+  for(int i = 12; i < 19; i++)
+    str.append(data[i]);
+  if(str == "       ")
+    str.clear();
+  mem.chName = str;
+  mem.call = data[19];
+  mem.changed = false;
+}
+
 QStringList MemoryTableModel::variants(int column, int row)
 {
   switch(column)
@@ -181,11 +306,16 @@ QStringList MemoryTableModel::variants(int column, int row)
   case 7: return encodeMap.keys();
   case 8: return toneModeMap.keys();
   case 11:
+  {
+    QStringList list;
+    list << " OFF";
     switch(m_memory[row].toneMode)
     {
-    case 1: return codeMap.keys();
-    case 2: return m_5tone.numbers();
+//    case 1: return list << codeMap.keys();
+    case 2: return list << m_5tone.numbers();
     }
+    return list;
+  }
   default: return QStringList();
   }
 }
@@ -259,12 +389,13 @@ QVariant MemoryTableModel::data(const QModelIndex &index, int role) const
   case 9: return m_memory[row - 1].begin;
   case 10: return m_memory[row - 1].end;
   case 11:
-    switch(m_memory[row - 1].toneMode)
-    {
-    case 1: return codeMap.key(m_memory[row - 1].call);
-    case 2: return QString::number(m_memory[row - 1].call);
-    default: return QVariant();
-    }
+    if(m_memory[row - 1].call)
+      switch(m_memory[row - 1].toneMode)
+      {
+      case 1: return codeMap.key(m_memory[row - 1].call);
+      case 2: return m_5tone.numbers().at(m_memory[row - 1].call);
+      }
+    return "OFF";
   case 12: return m_memory[row - 1].compander;
   case 13: return m_memory[row - 1].scrambler;
   case 14: return m_memory[row - 1].scan;
@@ -322,7 +453,8 @@ void calculateFR(double value, bool rx, MemoryItem &memory)
   }
 }
 
-bool MemoryTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
+bool MemoryTableModel::setData(const QModelIndex &index,
+                               const QVariant &value, int role)
 {
   int row = index.row();
   int column = index.column();
@@ -332,6 +464,7 @@ bool MemoryTableModel::setData(const QModelIndex &index, const QVariant &value, 
   QModelIndex start = MemoryTableModel::index(row, 7),
       end = MemoryTableModel::index(row + 1, 16);
   row--;
+  m_memory[row].changed = true;
   switch(column)
   {
   case 1:

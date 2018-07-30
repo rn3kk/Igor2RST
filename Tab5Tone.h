@@ -17,6 +17,9 @@ public:
 
   QStringList numbers();
 
+  QByteArray toWrite() const;
+  void read(QByteArray &data);
+
 signals:
 
 public slots:

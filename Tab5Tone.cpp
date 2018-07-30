@@ -10,7 +10,7 @@
 #include <QScrollArea>
 #include <QVBoxLayout>
 
-const QMap<QString, char> actionMap = {
+const QMap<QString, quint8> actionMap = {
   {"None", 0}, {"Squelch Off", 1},
   {"Beep Tone", 2}, {"Beep Tone & Respond", 3}
 };
@@ -107,6 +107,20 @@ QStringList Tab5Tone::numbers()
     if(!m_specialCall[i]->text().isEmpty())
       list << QString::number(i + 1);
   return list;
+}
+
+QByteArray Tab5Tone::toWrite() const
+{
+  QByteArray data;
+  QDataStream stream(&data, QIODevice::WriteOnly);
+  stream.setByteOrder(QDataStream::LittleEndian);
+  stream << decodeStandartMap[m_decodeStandart->currentText()].first;
+  quint16 value;
+  value = m_pretime->value();
+  stream << value;
+  value = m_response->value() * 1000;
+  stream << value;
+#warning not reeased
 }
 
 void Tab5Tone::newDecodeStandart(const QString &value)
