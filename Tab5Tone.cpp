@@ -109,6 +109,33 @@ QStringList Tab5Tone::numbers()
   return list;
 }
 
+QByteArray convertFromText(QString &text, int len)
+{
+  for(int i=1,l=text.size(); i<l; i++)
+  {
+    if(text[i] == text[i-1])
+      text[i] = 'E';
+  }
+  QByteArray result;
+  for(int i=0,l=text.size(); i<l; i++)
+    result.append(text.at(i).toLatin1() + 0x10);
+  while(result.size() < len)
+    result.append('\0');
+  return result;
+}
+
+QString convertToText(const QByteArray &data)
+{
+  QString str;
+  for(int i=0,l=data.size(); i<l; i++)
+  {
+    if(data[i] == 0)
+      break;
+    str += QString::number(data[i] - 0x10);
+  }
+  return str;
+}
+
 QByteArray Tab5Tone::toWrite() const
 {
   QByteArray data;
@@ -121,6 +148,54 @@ QByteArray Tab5Tone::toWrite() const
   value = m_response->value() * 1000;
   stream << value;
 #warning not reeased
+  qint8 nul = 0;
+  for(int i=0; i<4; i++)
+    stream << actionMap[m_decode[i].second->currentText()]
+           << nul; // ???????
+  stream << nul << nul; // ????? starting
+  stream << nul << nul; // ????? ending
+  for(int i=0; i<100; i++)
+  {
+    QString str = m_specialCall[i]->text();
+    stream << convertFromText(str, 12);
+  }
+  return data;
+}
+
+void Tab5Tone::read(QByteArray &data)
+{
+  QDataStream stream(&data, QIODevice::ReadOnly);
+  stream.setByteOrder(QDataStream::LittleEndian);
+  quint16 value;
+  stream >> value;
+  for(QMap<QString, DecodeStandart>::const_iterator it = decodeStandartMap.begin(),
+      end=decodeStandartMap.end(); it!=end; it++)
+    if(it.value().first == value)
+    {
+      m_decodeStandart->currentText() = it.key();
+      break;
+    }
+  stream >> value;
+  m_pretime->setValue(value);
+  stream >> value;
+  m_response->setValue(value / 1000.0);
+#warning not reeased
+  qint8 byte;
+  for(int i=0; i<4; i++)
+  {
+    stream >> byte;
+    m_decode[i].second->setCurrentText(actionMap.key(byte));
+    stream >> byte; // ???????
+  }
+  stream >> byte >> byte; // ????? starting
+  stream >> byte >> byte; // ????? ending
+  for(int i=0; i<100; i++)
+  {
+    char data[12];
+//    data.resize(12);
+    stream.readRawData(data, 12);
+    m_specialCall[i]->setText(convertToText(data));
+  }
 }
 
 void Tab5Tone::newDecodeStandart(const QString &value)

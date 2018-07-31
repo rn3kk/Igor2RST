@@ -20,6 +20,8 @@ public slots:
                     const QString &version);
 
 private:
+  class Tab2Tone *m_tone2;
+  class Tab5Tone *m_tone5;
   class MemoryTableModel *m_memory;
   QLabel *m_name;
   QLabel *m_version;

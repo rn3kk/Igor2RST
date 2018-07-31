@@ -17,7 +17,8 @@
 #include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent) :
-  QMainWindow(parent), m_memory(nullptr),
+  QMainWindow(parent), m_tone2(new Tab2Tone),
+  m_tone5(new Tab5Tone), m_memory(new MemoryTableModel(*m_tone5)),
   m_name(new QLabel), m_version(new QLabel),
   m_device(new RadioDevice)
 {
@@ -41,10 +42,8 @@ MainWindow::MainWindow(QWidget *parent) :
           sl, SLOT(setCurrentIndex(int)));
   QTableView *memoryView = new QTableView(this);
   sl->addWidget(memoryView);
-  Tab2Tone *tone2 = new Tab2Tone;
-  sl->addWidget(tone2);
-  Tab5Tone *tone5 = new Tab5Tone;
-  sl->addWidget(tone5);
+  sl->addWidget(m_tone2);
+  sl->addWidget(m_tone5);
 
   QPushButton *button = new QPushButton(tr("Find"));
   button->setObjectName("Find");
@@ -67,7 +66,6 @@ MainWindow::MainWindow(QWidget *parent) :
   tabs->addTab(tr("2 TONE"));
   tabs->addTab(tr("5 TONE"));
 
-  m_memory = new MemoryTableModel(*tone5);
   memoryView->setModel(m_memory);
   memoryView->horizontalHeader()->hide();
   memoryView->verticalHeader()->hide();
@@ -86,12 +84,18 @@ MainWindow::~MainWindow()
 
 void MainWindow::read()
 {
-#warning not released
+  QByteArrayList memory;
+  QByteArray tone2, tone5;
+  m_device->read(memory, tone2, tone5);
+  m_memory->read(memory);
+  m_tone2->read(tone2);
+  m_tone5->read(tone5);
 }
 
 void MainWindow::write()
 {
-#warning not released
+  m_device->write(m_memory->toWrite(false),
+                  m_tone2->toWrite(), m_tone5->toWrite());
 }
 
 void MainWindow::radioConnect(const QString &name, const QString &version)
