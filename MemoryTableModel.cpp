@@ -93,7 +93,7 @@ static const QMap<QString, qint16>  decodeMap =
 };
 static const QMap<QString, qint16>  encodeMap =
 {
-  {"OFF", 0x0000}, {"1-67.0", 0x01C9}, {"2-71.9", 0x01CA}, {"3-74.4", 0x01CB},
+  {" OFF", 0x0000}, {"1-67.0", 0x01C9}, {"2-71.9", 0x01CA}, {"3-74.4", 0x01CB},
   {"4-77.0", 0x01CC}, {"5-79.7", 0x01CD}, {"6-82.5", 0x01CE}, {"7-85.4", 0x01CF},
   {"8-88.5", 0x01D0}, {"9-91.5", 0x01D1}, {"10-94.8", 0x01D2}, {"11-97.4", 0x01D3},
   {"12-100.0", 0x01D4}, {"13-103.5", 0x01D5}, {"14-107.2", 0x01D6},
@@ -181,6 +181,7 @@ void MemoryTableModel::read(const QByteArrayList &data)
   }
   for(int i = 0; i < ITEM_COUNT; i++)
     setMemoryItem(data[i], i);
+  emit layoutChanged();
 }
 
 QByteArrayList MemoryTableModel::toWrite(bool toFile) const
@@ -211,52 +212,45 @@ QByteArrayList MemoryTableModel::toWrite(bool toFile) const
   return list;
 }
 
-QByteArray MemoryTableModel::memoryItem(int number) const
+QByteArray MemoryTableModel::memoryItem(int index) const
 {
-  MemoryItem &mem = m_memory[number];
+  MemoryItem &mem = m_memory[index];
   QByteArray data;
-  if(number > 199)
-  {
-    data.append('\x0c');
-    quint8 num = number - 199;
-    data.append(num);
-  }
-  else
-  {
-    data.append('\x01');
-    quint8 num = number;
-    data.append(num);
-  }
-  data.append('\0').append(0x14);
+  QDataStream stream(&data, QIODevice::WriteOnly);
+  quint8 byte;
   if(mem.chName.isEmpty())
   {
     data.append(data.fill(0xff, 20));
   }
   else
   {
-    data.append(mem.del | mem.lock | mem.scan);
-    data.append('$');
+    byte = mem.del | mem.lock | mem.scan;
+    stream << byte;
+    byte = 0x24;
+    stream << byte;
     quint16 freq = round(mem.rxFrequence *
                          (mem.rxFrStep625 ? 6250 : 5000));
-    data.append(((mem.rxFrStep625 ? 0x8000 : 0x0000) |
-                (freq & 0xff00)) >> 8);
-    data.append(freq & 0x00ff);
+    freq |= mem.rxFrStep625 ? 0x8000 : 0x0000;
+    stream << freq;
     freq = round(mem.txFrequence *
                  (mem.txFrStep625 ? 6250 : 5000));
-    data.append(((mem.rxFrStep625 ? 0x8000: 0x0000) |
-                (freq & 0xff00)) >> 8);
-    data.append(freq & 0x00ff);
-    data.append((mem.decode & 0xff00) >> 8);
-    data.append(mem.decode & 0x00ff);
-    data.append((mem.encode & 0xff00) >> 8);
-    data.append(mem.encode & 0x00ff);
-    data.append(mem.begin | mem.end | mem.toneMode);
-    data.append(mem.bandwidth | mem.scrambler |
-                mem.compander | mem.powerOut);
+    freq |= mem.rxFrStep625 ? 0x8000: 0x0000;
+    stream << freq;
+    stream << mem.decode << mem.encode;
+//    data.append((mem.decode & 0xff00) >> 8);
+//    data.append(mem.decode & 0x00ff);
+//    data.append((mem.encode & 0xff00) >> 8);
+//    data.append(mem.encode & 0x00ff);
+    byte = mem.begin | mem.end | mem.toneMode;
+    stream << byte;
+    byte = mem.bandwidth | mem.scrambler |
+            mem.compander | mem.powerOut;
+    stream << byte;
     QByteArray name = mem.chName.toLatin1();
     while(name.size() < 7)
       name.append(' ');
     data.append(name);
+//    stream << name.data();
     data.append(mem.call);
   }
   return data;
@@ -265,6 +259,29 @@ QByteArray MemoryTableModel::memoryItem(int number) const
 void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
 {
   MemoryItem &mem = m_memory[number];
+  if(data[0] == '\xff' && data[1] == '\xff')
+  {
+    mem.changed = false;
+    mem.decode = 0x0000;
+    mem.encode = 0x0000;
+    mem.rxFrStep625 = false;
+    mem.rxFrequence = 33.0;
+    mem.txFrStep625 = false;
+    mem.txFrequence = 33.0;
+    mem.compander = 0;
+    mem.scrambler = 0;
+    mem.scan = 0;
+    mem.del = 0;
+    mem.lock = 0;
+    mem.bandwidth = 0;
+    mem.powerOut = 0;
+    mem.toneMode = 0;
+    mem.call = 0;
+    mem.begin = 0;
+    mem.end = 0;
+    mem.chName.clear();
+    return;
+  }
   mem.del = mem.lock = mem.scan = data[0];
   quint16 freq = data[2];
   freq <<= 8;
@@ -454,7 +471,7 @@ void calculateFR(double value, bool rx, MemoryItem &memory)
 }
 
 bool MemoryTableModel::setData(const QModelIndex &index,
-                               const QVariant &value, int role)
+                               const QVariant &value, int)
 {
   int row = index.row();
   int column = index.column();
@@ -551,7 +568,7 @@ Qt::ItemFlags MemoryTableModel::flags(const QModelIndex &index) const
   row--;
   if(column <= 11 && column > 8 && m_memory[row].toneMode == 0)
   {
-    return Qt::ItemIsAutoTristate;
+    return Qt::NoItemFlags;
   }
 //  if(column != 4 && m_memory[row].chName.isEmpty())
 //  {

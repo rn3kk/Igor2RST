@@ -4,9 +4,11 @@
 #
 #-------------------------------------------------
 
-QT       += core gui serialport
+QT       += core gui serialport network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+CONFIG += c++11
 
 TARGET = UserTRX
 TEMPLATE = app
@@ -32,7 +34,9 @@ SOURCES += \
     MemoryDelegate.cpp \
     CheckBox.cpp \
     RadioDevice.cpp \
-    LineEdit.cpp
+    LineEdit.cpp \
+    Log.cpp \
+    CheckConnnectionToRadio.cpp
 
 HEADERS += \
         MainWindow.h \
@@ -42,4 +46,6 @@ HEADERS += \
     MemoryDelegate.h \
     CheckBox.h \
     RadioDevice.h \
-    LineEdit.h
+    LineEdit.h \
+    Log.h \
+    CheckConnnectionToRadio.h

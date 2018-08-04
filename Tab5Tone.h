@@ -24,6 +24,9 @@ signals:
 
 public slots:
   void newDecodeStandart(const QString &value);
+  void decodeChanged(QString value);
+  void replaceRepeatSymbol(QString value);
+  void replaceRepeatSymbol(QString value, LineEdit *obj);
 
 private:
   QComboBox *m_decodeStandart;

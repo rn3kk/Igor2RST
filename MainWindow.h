@@ -11,7 +11,6 @@ class MainWindow : public QMainWindow
 
 public:
   MainWindow(QWidget *parent = 0);
-  ~MainWindow();
 
 public slots:
   void read();
@@ -25,6 +24,7 @@ private:
   class MemoryTableModel *m_memory;
   QLabel *m_name;
   QLabel *m_version;
+  QLabel *m_busy;
   class RadioDevice *m_device;
 };
 

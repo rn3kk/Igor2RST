@@ -50,6 +50,8 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
   fl->addRow(tr("PTT ID Ending"), m_end);
   QGroupBox *box = new QGroupBox(tr("Decode"));
   vl->addWidget(box);
+  vl->addSpacerItem(new QSpacerItem(1, 1, QSizePolicy::Minimum,
+                                    QSizePolicy::Expanding));
   QGridLayout *gl = new QGridLayout(box);
   for(int i=0; i<4; i++)
   {
@@ -58,6 +60,8 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
     code->setValidator(&validator);
 //    code->setInputMask(">HHHHH");
     code->setText("12345");
+    connect(code, SIGNAL(textEdited(QString)),
+            SLOT(decodeChanged(QString)));
     gl->addWidget(code, i, 0);
     QComboBox *action = new QComboBox;
     action->addItems(actionMap.keys());
@@ -80,6 +84,8 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
 //    edit->setInputMask(">HHHHHHHHHHHH");
     fl->addRow(QString::number(i), edit);
     m_specialCall[i - 1] = edit;
+    connect(edit, SIGNAL(textEdited(QString)),
+            SLOT(replaceRepeatSymbol(QString)));
   }
   m_start->setValidator(&validator);
 //  m_start->setInputMask(">HHHHHHHHHHHH");
@@ -98,6 +104,11 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
   connect(m_decodeStandart, SIGNAL(currentTextChanged(QString)),
           this, SLOT(newDecodeStandart(QString)));
   m_decodeStandart->setCurrentText("EEA");
+
+  connect(m_start, SIGNAL(textEdited(QString)),
+          SLOT(replaceRepeatSymbol(QString)));
+  connect(m_end, SIGNAL(textEdited(QString)),
+          SLOT(replaceRepeatSymbol(QString)));
 }
 
 QStringList Tab5Tone::numbers()
@@ -118,9 +129,9 @@ QByteArray convertFromText(QString &text, int len)
   }
   QByteArray result;
   for(int i=0,l=text.size(); i<l; i++)
-    result.append(text.at(i).toLatin1() + 0x10);
+    result.append(text.mid(i, 1).toInt(nullptr, 16) + 0x10);
   while(result.size() < len)
-    result.append('\0');
+    result.prepend('\0');
   return result;
 }
 
@@ -147,16 +158,29 @@ QByteArray Tab5Tone::toWrite() const
   stream << value;
   value = m_response->value() * 1000;
   stream << value;
-#warning not reeased
   qint8 nul = 0;
   for(int i=0; i<4; i++)
+  {
+    nul = i + 103;
     stream << actionMap[m_decode[i].second->currentText()]
-           << nul; // ???????
-  stream << nul << nul; // ????? starting
-  stream << nul << nul; // ????? ending
+        << nul;
+  }
+  value = 101;
+  stream << value; // ????? starting
+  value = 102;
+  stream << value; // ????? ending
   for(int i=0; i<100; i++)
   {
     QString str = m_specialCall[i]->text();
+    stream << convertFromText(str, 12);
+  }
+  QString str = m_start->text();
+  stream << convertFromText(str, 12);
+  str = m_end->text();
+  stream << convertFromText(str, 12);
+  for(int i=0; i<4; i++)
+  {
+    str = m_decode[i].first->text();
     stream << convertFromText(str, 12);
   }
   return data;
@@ -179,26 +203,57 @@ void Tab5Tone::read(QByteArray &data)
   m_pretime->setValue(value);
   stream >> value;
   m_response->setValue(value / 1000.0);
-#warning not reeased
   qint8 byte;
   for(int i=0; i<4; i++)
   {
     stream >> byte;
     m_decode[i].second->setCurrentText(actionMap.key(byte));
-    stream >> byte; // ???????
+    stream >> byte;
   }
-  stream >> byte >> byte; // ????? starting
-  stream >> byte >> byte; // ????? ending
+  stream >> byte >> byte;
+  stream >> byte >> byte;
+  char dataPart[12];
   for(int i=0; i<100; i++)
   {
-    char data[12];
-//    data.resize(12);
-    stream.readRawData(data, 12);
-    m_specialCall[i]->setText(convertToText(data));
+    stream.readRawData(dataPart, 12);
+    m_specialCall[i]->setText(convertToText(dataPart));
+  }
+  stream.readRawData(dataPart, 12);
+  m_start->setText(convertToText(dataPart));
+  stream.readRawData(dataPart, 12);
+  m_end->setText(convertToText(dataPart));
+  for(int i=0; i<4; i++)
+  {
+    stream.readRawData(dataPart, 12);
+    m_decode[i].first->setText(convertToText(dataPart));
   }
 }
 
 void Tab5Tone::newDecodeStandart(const QString &value)
 {
   m_validator->setRegExp(decodeStandartMap[value].second);
+}
+
+void Tab5Tone::decodeChanged(QString value)
+{
+  if(value.isEmpty())
+    value = "12345";
+  while(value.size() < 5)
+    value.append(value.at(value.length() - 1));
+  replaceRepeatSymbol(value, qobject_cast<LineEdit*>(sender()));
+}
+
+void Tab5Tone::replaceRepeatSymbol(QString value)
+{
+  replaceRepeatSymbol(value, qobject_cast<LineEdit*>(sender()));
+}
+
+void Tab5Tone::replaceRepeatSymbol(QString value, LineEdit *obj)
+{
+  for(int i=1, l=value.size(); i<l; i++)
+  {
+    if(value[i-1] == value[i])
+      value[i] = 'E';
+  }
+  obj->setText(value);
 }

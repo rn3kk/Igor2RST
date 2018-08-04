@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QStackedLayout>
+#include <QStatusBar>
 #include <QTabBar>
 #include <QTableView>
 #include <QTextStream>
@@ -20,8 +21,12 @@ MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent), m_tone2(new Tab2Tone),
   m_tone5(new Tab5Tone), m_memory(new MemoryTableModel(*m_tone5)),
   m_name(new QLabel), m_version(new QLabel),
+  m_busy(new QLabel),
   m_device(new RadioDevice)
 {
+  QStatusBar *status = new QStatusBar(this);
+  setStatusBar(status);
+  status->addPermanentWidget(m_busy);
   QWidget *central = new QWidget(this);
   setCentralWidget(central);
   QVBoxLayout *vl = new QVBoxLayout(central);
@@ -32,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent) :
   QFormLayout *fl = new QFormLayout;
   hl->addLayout(fl);
   fl->addRow(tr("Name"), m_name);
-  fl->addRow(tr("Version"), m_version);
+  fl->addRow(tr("Version  "), m_version);
   hl->addSpacerItem(new QSpacerItem(1, 1, QSizePolicy::Expanding));
   QTabBar *tabs = new QTabBar;
   vl->addWidget(tabs);
@@ -74,32 +79,36 @@ MainWindow::MainWindow(QWidget *parent) :
   memoryView->setItemDelegate(new MemoryDelegate);
   memoryView->resizeColumnsToContents();
 
-  setMinimumSize(1040, 500);
-}
+  connect(m_device, SIGNAL(connected(QString,QString)),
+          SLOT(radioConnect(QString,QString)));
 
-MainWindow::~MainWindow()
-{
-
+  setMinimumSize(1020, 500);
 }
 
 void MainWindow::read()
 {
   QByteArrayList memory;
   QByteArray tone2, tone5;
+  m_busy->setText(tr("read data from device"));
   m_device->read(memory, tone2, tone5);
   m_memory->read(memory);
   m_tone2->read(tone2);
   m_tone5->read(tone5);
+  m_busy->setText("");
 }
 
 void MainWindow::write()
 {
+  m_busy->setText(tr("write data to device"));
   m_device->write(m_memory->toWrite(false),
                   m_tone2->toWrite(), m_tone5->toWrite());
+  m_busy->setText("");
 }
 
 void MainWindow::radioConnect(const QString &name, const QString &version)
 {
+  m_busy->setText(tr("find device"));
   m_name->setText(name);
   m_version->setText(version);
+  m_busy->setText("");
 }

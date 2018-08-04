@@ -26,8 +26,9 @@ private:
   bool isValidPackage(const QByteArray &packet);
   QByteArray readMemory(int index);
   QByteArray readRegistry();
-  void writeMemory(const QByteArray &data, quint8 index);
+  void writeMemory(const QByteArray &data);
   void writeRegistry(const QByteArray &data);
+  class QMutex *m_mutex;
 };
 
 #endif // RADIODEVICE_H

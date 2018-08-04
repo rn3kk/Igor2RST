@@ -1,43 +1,71 @@
 #include "RadioDevice.h"
 
 #include <QApplication>
-#include <QDeadLineTimer>
+#include <QDataStream>
+#include <QDebug>
 #include <QElapsedTimer>
+#include <QMutex>
 #include <QSerialPort>
 #include <QSerialPortInfo>
 #include <QThread>
 
 RadioDevice::RadioDevice(QObject *parent) :
-    QObject(parent), m_port(nullptr)
+    QObject(parent), m_port(nullptr), m_mutex(new QMutex)
 {
 }
 
 void RadioDevice::read(QByteArrayList &chData, QByteArray &tone2,
                        QByteArray &tone5)
 {
+  qDebug() << "-------------------------------read----------------------------------------\n\t"
+              "----------------------------------------------------------------------------------------";
   chData.clear();
   for(int i=1; i<=208; i++)
     chData << readMemory(i);
   QByteArray registry = readRegistry();
-  tone2.clear();
-  tone5.clear();
-  tone5.append(registry.mid(0, 2));
-  tone5.append(registry.mid(12, 2));
-  tone5.append(registry.mid(16, 2));
-  tone5.append(registry.mid(26, 8));
-  tone5.append(registry.mid(38));
-  tone2.append(registry.mid(2, 10));
-  tone2.append(registry.mid(14, 2));
-  tone2.append(registry.mid(18, 8));
-  tone2.append(registry.mid(34, 4));
+  if(registry.isEmpty())
+  {
+    qCritical() << "registry not read";
+  }
+  else
+  {
+                   tone2.clear();
+                   tone5.clear();
+                   tone5.append(registry.mid(0, 2));
+                   tone5.append(registry.mid(12, 2));
+                   tone5.append(registry.mid(16, 2));
+                   tone5.append(registry.mid(26, 8));
+                   tone5.append(registry.mid(38));
+                   tone2.append(registry.mid(2, 10));
+                   tone2.append(registry.mid(14, 2));
+                   tone2.append(registry.mid(18, 8));
+                   tone2.append(registry.mid(34, 4));
+  }
+  QByteArray debugMsg;
+  for(const QByteArray &i : chData)
+    debugMsg += "\"" + i.toHex() + "\" ";
+  debugMsg += "}\ntone2 " + tone2.toHex();
+  debugMsg += "\ntone5 " + tone5.toHex();
+  qDebug() << debugMsg.data();
+  qDebug() << "-------------------------------------------------------------------------\n\t"
+              "----------------------------------------------------------------------------------------";
 }
 
 void RadioDevice::write(const QByteArrayList &chData,
                         const QByteArray &tone2,
                         const QByteArray &tone5)
 {
-  for(int i=0; i<208;)
-    writeMemory(chData[i], ++i);
+    qDebug() << "---------------------------------write-----------------------------\n\t"
+                "----------------------------------------------------------------------------------------";
+  QByteArray debugMsg;
+  debugMsg += "\nmemory {";
+  for(const QByteArray &i : chData)
+    debugMsg += "\"" + i.toHex() + "\" ";
+  debugMsg += "}\ntone2 " + tone2.toHex();
+  debugMsg += "\ntone5 " + tone5.toHex();
+  qDebug() << debugMsg.data();
+  for(const QByteArray &i : chData)
+    writeMemory(i);
   QByteArray registry;
   registry.append(tone5.mid(0, 2));
   registry.append(tone2.mid(0,10));
@@ -49,6 +77,8 @@ void RadioDevice::write(const QByteArrayList &chData,
   registry.append(tone2.mid(20));
   registry.append(tone5.mid(14));
   writeRegistry(registry);
+  qDebug() << "-------------------------------------------------------------------------\n\t"
+              "----------------------------------------------------------------------------------------";
 }
 
 quint16 crc(const QByteArray &data, int numByte)
@@ -64,7 +94,7 @@ quint16 crc(const QByteArray &data, int numByte)
     while(--w3)
     {
       bool c = w0 & 0x0001;
-      w0 >>= 1;
+      w0 = (w0 >> 1) & 0x7fff;
       if(c)
       {
         w2 = 0x8005;
@@ -88,8 +118,11 @@ void RadioDevice::reconnect()
     '\xA8', '\x20', '\xA8', '\x02', '\xED', '\x02', '\xED', '\x00', '\x00',
     '\x53', '\x4B', '\x4F', '\x52', '\x41', '\x4A', '\x41', '\x00', '\x9A', '\xB0'
   };
-  QByteArray data(dataPtr, 28);
-  quint16 result = crc(data, 26);*/
+ // QByteArray data(dataPtr, 28);
+  QByteArray data = QByteArray::fromHex("2111000a41522d343376322e30356d62");
+  quint16 result = crc(data, 14);*/
+  if(!m_mutex->tryLock(1))
+    return;
   if(m_port != nullptr)
   {
     m_port->close();
@@ -99,6 +132,7 @@ void RadioDevice::reconnect()
   QElapsedTimer timer;
   for(const QSerialPortInfo &i : QSerialPortInfo::availablePorts())
   {
+    qDebug() << "probe port " << i.portName();
     m_port = new QSerialPort(i);
     m_port->setBaudRate(QSerialPort::Baud115200);
     m_port->setDataBits(QSerialPort::Data8);
@@ -119,133 +153,227 @@ void RadioDevice::reconnect()
     }
     while(!timer.hasExpired(1000));
     QByteArray data = m_port->readAll();
-    int start = data.indexOf("\x11\0") - 1;
-    data = data.mid(start, 16);
-    if(isValidPackage(data))
+    qDebug() << "recive data " << data.toHex();
+    if(!data.isEmpty())
     {
-      QString name = data.mid(4, 5);
-      QString version = data.mid(9, 5);
-      m_adress = data[0];
-      emit connected(name, version);
-      readMemory(1);
-      break;
+        int start = data.indexOf("\x11\0") - 1;
+        data = data.mid(start, 16);
+        qDebug() << "packet " << data.toHex();
+        if(isValidPackage(data))
+        {
+            QString name = data.mid(4, 5);
+            QString version = data.mid(9, 5);
+            m_adress = data[0];
+            emit connected(name, version);
+            readMemory(1);
+            break;
+        }
     }
     m_port->close();
     delete m_port;
     m_port = nullptr;
   }
+  qDebug("exit from connect");
+  m_mutex->unlock();
 }
 
 bool RadioDevice::isValidPackage(const QByteArray &packet)
 {
   int size = packet.size();
+  QByteArray crcPacket = packet.right(2);
   qint16 checksumPacket = ((packet[size - 2] & 0xffff) << 8) |
-      (packet[size - 1] & 0xffff);
-  return checksumPacket == crc(packet, size - 2);
+      (packet[size - 1] & 0x00ff);
+  qint16 result = crc(packet, size - 2);
+  qDebug() << "packet crc " << QString::number(checksumPacket, 16)
+           << " calculate crc " << QString::number(result, 16);
+  return checksumPacket == result;
 }
 
 QByteArray RadioDevice::readMemory(int index)
 {
-  QByteArray request = "r\x09";
+  QByteArray request;
+  QDataStream stream(&request, QIODevice::WriteOnly);
+  stream << m_adress;
+  quint8 command = 0x09;
+  stream << command;
+  quint8 byte;
+  quint8 num;
   if(index > 199)
   {
-    request.append('\x0c');
-    quint8 num = index - 199;
-    request.append(num);
+    byte = 0x0c;
+    num = index - 199;
   }
   else
   {
-    request.append('\x01');
-    quint8 num = index;
-    request.append(num);
+    byte = 0x01;
+    num = index;
   }
-  quint16 checksum = crc(request, 4);
-  request.append(checksum >> 8);
-  request.append(checksum & 0x00ff);
-  while(true)
+  stream << byte << num;
+  stream << crc(request, 4);
+//  quint16 checksum = crc(request, 4);
+//  request.append(checksum >> 8);
+//  request.append(checksum & 0x00ff);
+  QElapsedTimer allTimer;
+  allTimer.start();
+  while(!allTimer.hasExpired(20000))
   {
+    const int responseLen = 28;
+    qDebug() << "write to radio " << request.toHex();
     m_port->write(request);
-    QDeadlineTimer timer(10);
+    QElapsedTimer timer;
+    timer.start();
+    QByteArray response;
     m_port->waitForReadyRead(10);
     do
     {
       qApp->processEvents(QEventLoop::AllEvents, 1);
       QThread::currentThread()->msleep(1);
+      response.append(m_port->readAll());
+      response = response.mid(response.indexOf(command) - 1, responseLen);
     }
-    while(!timer.hasExpired());
-    QByteArray response = m_port->readAll();
-    if(response.size() >= 28 && isValidPackage(response))
+    while(response.size() < responseLen && !timer.hasExpired(4000));
+    qDebug() << "read " << response.toHex();
+//    while()
+//    {
+//      qApp->processEvents(QEventLoop::AllEvents, 1);
+//      QThread::currentThread()->msleep(1);
+//    }
+//    response = response.left(28);
+//    qDebug() << "packet " << response.toHex();
+    qDebug() << "recive data " << response.toHex();
+    if(response.size() >= responseLen && isValidPackage(response))
+    {
+      qDebug() << "recive package ";
       return response.mid(6, 20);
+    }
+    else
+      qDebug("not find valid response to read");
   }
+  qCritical() << "timeout for " << __func__;
+  return QByteArray();
 }
 
 QByteArray RadioDevice::readRegistry()
 {
-  QByteArray request("r\x0b\0\0\x02\x6d", 6);
+  const int responseLen = 28;
+  QByteArray request;
+  QDataStream stream(&request, QIODevice::WriteOnly);
+  stream << m_adress;
+  quint8 command = 0x0b;
+  stream << command;
+  quint32 dat = 0x0000026d;
+  stream << dat;
   quint16 checksum = crc(request, 6);
-  request.append(checksum >> 8);
-  request.append(checksum & 0x00ff);
-  while(true)
+  stream << checksum;
+//  request.append(checksum >> 8);
+//  request.append(checksum & 0x00ff);
+  QElapsedTimer allTimer;
+  allTimer.start();
+  while(!allTimer.hasExpired(20000))
   {
+    qDebug() << "write to radio " << request.toHex();
     m_port->write(request);
-    QDeadlineTimer timer(10);
+    QElapsedTimer timer;
+    QByteArray response;
+    timer.start();
     m_port->waitForReadyRead(10);
     do
     {
       qApp->processEvents(QEventLoop::AllEvents, 1);
       QThread::currentThread()->msleep(1);
+      response += m_port->readAll();
+      response = response.mid(response.indexOf(command) - 1, responseLen);
     }
-    while(!timer.hasExpired());
-    QByteArray response = m_port->readAll();
-    if(response.size() >= 28 && isValidPackage(response))
+    while(response.size() < responseLen && !timer.hasExpired(5000));
+    qDebug() << "recive data " << response.toHex();
+    if(response.size() >= responseLen && isValidPackage(response))
+    {
+      qDebug() << "recive package ";
       return response.mid(4, 1242);
+    }
   }
+  qCritical() << "timeout for " << __func__;
+  return QByteArray();
 }
 
-void RadioDevice::writeMemory(const QByteArray &data, quint8 index)
+void RadioDevice::writeMemory(const QByteArray &data)
 {
-  QByteArray request = "r\x0a";
+  const int responseLen = 8;
+  QByteArray request;
+  QDataStream stream(&request, QIODevice::WriteOnly);
+  stream << m_adress;
+  quint8 command = 0x0a;
+  stream << command;
   request.append(data);
   quint16 checksum = crc(request, 26);
   request.append(checksum >> 8);
   request.append(checksum & 0x00ff);
-  while(true)
+  QElapsedTimer allTimer;
+  allTimer.start();
+  while(!allTimer.hasExpired(20000))
   {
+    qDebug() << "write memory to radio " << request.toHex();
     m_port->write(request);
-    QDeadlineTimer timer(10);
+    QElapsedTimer timer;
+    QByteArray response;
+    timer.start();
     m_port->waitForReadyRead(10);
     do
     {
       qApp->processEvents(QEventLoop::AllEvents, 1);
       QThread::currentThread()->msleep(1);
+      response += m_port->readAll();
+      response = response.mid(response.indexOf(command) - 1, responseLen);
     }
-    while(!timer.hasExpired());
-    QByteArray response = m_port->readAll();
-    if(isValidPackage(response))
+    while(response.size() < responseLen && !timer.hasExpired(4000));
+    qDebug() << "recive data " << response.toHex();
+    if(response.size() >= responseLen && isValidPackage(response))
+    {
+      qDebug() << "recive valid answer ";
       return;
+    }
   }
+  qCritical() << "timeout for " << __func__;
 }
 
 void RadioDevice::writeRegistry(const QByteArray &data)
 {
-  QByteArray request("r\x0c\0\x00\x02\x6d", 6);
+  const int responseLen = 8;
+  QByteArray request;
+  QDataStream stream(&request, QIODevice::WriteOnly);
+  stream << m_adress;
+  quint8 command = 0x0c;
+  stream << command;
+  quint32 dat = 0x0000026d;
+  stream << dat;
   request.append(data);
   quint16 checksum = crc(request, 26);
   request.append(checksum >> 8);
   request.append(checksum & 0x00ff);
-  while(true)
+  QElapsedTimer allTimer;
+  allTimer.start();
+  while(!allTimer.hasExpired(20000))
   {
+    qDebug() << "write to radio " << request.toHex();
     m_port->write(request);
-    QDeadlineTimer timer(5000);
+    QElapsedTimer timer;
+    QByteArray response;
+    timer.start();
     m_port->waitForReadyRead(10);
     do
     {
       qApp->processEvents(QEventLoop::AllEvents, 1);
       QThread::currentThread()->msleep(1);
+      response += m_port->readAll();
+      response = response.mid(response.indexOf(command) - 1, responseLen);
     }
-    while(!timer.hasExpired());
-    QByteArray response = m_port->readAll();
-    if(isValidPackage(response))
+    while(response.size() < responseLen && !timer.hasExpired(5000));
+    qDebug() << "recive data " << response.toHex();
+    if(response.size() >= responseLen && isValidPackage(response))
+    {
+      qDebug("recive answer");
       return;
+    }
   }
+  qCritical() << "timeout for " << __func__;
 }
