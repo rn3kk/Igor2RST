@@ -151,7 +151,7 @@ QByteArray Tab5Tone::toWrite() const
 {
   QByteArray data;
   QDataStream stream(&data, QIODevice::WriteOnly);
-  stream.setByteOrder(QDataStream::LittleEndian);
+  stream.setByteOrder(QDataStream::BigEndian);
   stream << decodeStandartMap[m_decodeStandart->currentText()].first;
   quint16 value;
   value = m_pretime->value();
@@ -189,7 +189,7 @@ QByteArray Tab5Tone::toWrite() const
 void Tab5Tone::read(QByteArray &data)
 {
   QDataStream stream(&data, QIODevice::ReadOnly);
-  stream.setByteOrder(QDataStream::LittleEndian);
+  stream.setByteOrder(QDataStream::BigEndian);
   quint16 value;
   stream >> value;
   for(QMap<QString, DecodeStandart>::const_iterator it = decodeStandartMap.begin(),

@@ -247,7 +247,7 @@ QByteArray RadioDevice::readMemory(int index)
       return response.mid(6, 20);
     }
     else
-      qDebug("not find valid response to read");
+      qDebug("not find valid response read memory to read");
   }
   qCritical() << "timeout for " << __func__;
   return QByteArray();
@@ -255,7 +255,7 @@ QByteArray RadioDevice::readMemory(int index)
 
 QByteArray RadioDevice::readRegistry()
 {
-  const int responseLen = 28;
+  const int responseLen = 1248;
   QByteArray request;
   QDataStream stream(&request, QIODevice::WriteOnly);
   stream << m_adress;
@@ -291,6 +291,8 @@ QByteArray RadioDevice::readRegistry()
       qDebug() << "recive package ";
       return response.mid(4, 1242);
     }
+    else
+      qCritical("read registry recive error");
   }
   qCritical() << "timeout for " << __func__;
   return QByteArray();
@@ -332,6 +334,8 @@ void RadioDevice::writeMemory(const QByteArray &data)
       qDebug() << "recive valid answer ";
       return;
     }
+    else
+      qCritical("write memory recive error");
   }
   qCritical() << "timeout for " << __func__;
 }
@@ -344,9 +348,13 @@ void RadioDevice::writeRegistry(const QByteArray &data)
   stream << m_adress;
   quint8 command = 0x0c;
   stream << command;
-  quint32 dat = 0x0000026d;
+  quint16 dat = 0;
   stream << dat;
-  request.append(data);
+  dat = 0x0005;
+  stream << dat;
+  dat = 0x000a;
+  stream << dat;
+  request.append(data.left(10));
   quint16 checksum = crc(request, 26);
   request.append(checksum >> 8);
   request.append(checksum & 0x00ff);
@@ -374,6 +382,8 @@ void RadioDevice::writeRegistry(const QByteArray &data)
       qDebug("recive answer");
       return;
     }
+    else
+      qCritical("write registry recive error");
   }
   qCritical() << "timeout for " << __func__;
 }

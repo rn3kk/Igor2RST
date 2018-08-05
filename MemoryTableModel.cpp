@@ -226,13 +226,14 @@ QByteArray MemoryTableModel::memoryItem(int index) const
   {
     byte = mem.del | mem.lock | mem.scan;
     stream << byte;
-    byte = 0x24;
+//    byte = 0x24;
+    byte = 0xff;
     stream << byte;
-    quint16 freq = round(mem.rxFrequence *
+    quint16 freq = round(mem.rxFrequence * 1000000 /
                          (mem.rxFrStep625 ? 6250 : 5000));
     freq |= mem.rxFrStep625 ? 0x8000 : 0x0000;
     stream << freq;
-    freq = round(mem.txFrequence *
+    freq = round(mem.txFrequence * 1000000 /
                  (mem.txFrStep625 ? 6250 : 5000));
     freq |= mem.rxFrStep625 ? 0x8000: 0x0000;
     stream << freq;
@@ -287,14 +288,14 @@ void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
   freq <<= 8;
   freq |= data[3];
   mem.rxFrStep625 = freq & 0x8000;
-  mem.rxFrequence = (freq & 0x4fff) /
-      (mem.rxFrStep625 ? 6250 : 5000);
+  mem.rxFrequence = (freq & 0x7fff) *
+      (mem.rxFrStep625 ? 6.250 : 5.000) / 1000.0;
   freq = data[4];
   freq = (freq << 8) & 0xff00;
   freq |= data[5];
   mem.txFrStep625 = freq & 0x8000;
-  mem.txFrequence = (freq & 0x4fff) /
-      (mem.txFrStep625 ? 6250 : 5000);
+  mem.txFrequence = (freq & 0x7fff) *
+          (mem.rxFrStep625 ? 6.250 : 5.000) / 1000.0;
   mem.decode = data[6];
   mem.decode = (mem.decode << 8) & 0xff00;
   mem.decode |= data[7];

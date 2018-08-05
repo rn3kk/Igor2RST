@@ -82,19 +82,31 @@ Tab2Tone::Tab2Tone(QWidget *parent) :
   m_end->setCurrentText("AB");
 }
 
+quint16 convertFrequence(int freq)
+{
+  int n = trunc(0.042666 * freq);
+  int r = round((0.04266 * freq - n) * 6000 / freq);
+  return ((n << 5) & 0x0fe0) | (r & 0x000f);
+}
+
 QByteArray Tab2Tone::toWrite() const
 {
   QByteArray data;
   QDataStream stream(&data, QIODevice::WriteOnly);
-  stream.setByteOrder(QDataStream::LittleEndian);
-  quint16 value = m_a->value();
-  stream << value;
-  value = m_b->value();
-  stream << value;
-  value = m_c->value();
-  stream << value;
-  value = m_d->value();
-  stream << value;
+  stream.setByteOrder(QDataStream::BigEndian);
+  quint16 value; //= m_a->value();
+  value = convertFrequence(m_a->value());
+  stream << value
+         << convertFrequence(m_b->value())
+         << convertFrequence(m_c->value())
+         << convertFrequence(m_d->value());
+//  stream << value;
+//  value = m_b->value();
+//  stream << value;
+//  value = m_c->value();
+//  stream << value;
+//  value = m_d->value();
+//  stream << value;
   value = m_pretime->value();
   stream << value;
   value = m_response->value() * 1000;
@@ -112,7 +124,7 @@ QByteArray Tab2Tone::toWrite() const
 void Tab2Tone::read(QByteArray &data)
 {
   QDataStream stream(&data, QIODevice::ReadOnly);
-  stream.setByteOrder(QDataStream::LittleEndian);
+  stream.setByteOrder(QDataStream::BigEndian);
   quint16 value;
   stream >> value;
   m_a->setValue(value);
