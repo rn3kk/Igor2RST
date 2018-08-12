@@ -116,7 +116,7 @@ void MemoryDelegate::setEditorData(QWidget *editor, const QModelIndex &index) co
     spinBox->setValue(index.data(Qt::EditRole).toDouble());
   QCheckBox *check = qobject_cast<QCheckBox*>(editor);
   if(check != nullptr)
-    check->setChecked(index.data(Qt::EditRole).toBool());
+    check->setChecked(!index.data(Qt::EditRole).toBool());
 }
 
 void MemoryDelegate::setModelData(QWidget *editor,

@@ -226,8 +226,7 @@ QByteArray MemoryTableModel::memoryItem(int index) const
   {
     byte = mem.del | mem.lock | mem.scan;
     stream << byte;
-//    byte = 0x24;
-    byte = 0xff;
+    byte = 0x24;
     stream << byte;
     quint16 freq = round(mem.rxFrequence * 1000000 /
                          (mem.rxFrStep625 ? 6250 : 5000));

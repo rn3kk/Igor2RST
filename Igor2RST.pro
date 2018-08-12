@@ -36,7 +36,6 @@ SOURCES += \
     RadioDevice.cpp \
     LineEdit.cpp \
     Log.cpp \
-    CheckConnnectionToRadio.cpp
 
 HEADERS += \
         MainWindow.h \
@@ -48,4 +47,3 @@ HEADERS += \
     RadioDevice.h \
     LineEdit.h \
     Log.h \
-    CheckConnnectionToRadio.h
