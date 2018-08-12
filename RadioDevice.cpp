@@ -106,7 +106,7 @@ quint16 crc(const QByteArray &data, int numByte)
   w0 = ((w0 << 8) & 0xff00) | ((w0 >> 8) & 0x00ff);
   return w0;
 }
-
+//b4ac  4ef3
 void RadioDevice::reconnect()
 {/*
   const char dataPtr[] = {
@@ -119,8 +119,8 @@ void RadioDevice::reconnect()
     '\x53', '\x4B', '\x4F', '\x52', '\x41', '\x4A', '\x41', '\x00', '\x9A', '\xB0'
   };
  // QByteArray data(dataPtr, 28);
-  QByteArray data = QByteArray::fromHex("2111000a41522d343376322e30356d62");
-  quint16 result = crc(data, 14);*/
+  QByteArray data = QByteArray::fromHex("210A0100001400FF19C819C800000000000043484E414D452000B4AC");
+  quint16 result = crc(data, 26);*/
   if(!m_mutex->tryLock(1))
     return;
   if(m_port != nullptr)
@@ -151,7 +151,7 @@ void RadioDevice::reconnect()
       QThread::currentThread()->msleep(5);
       qApp->processEvents(QEventLoop::AllEvents, 10);
     }
-    while(!timer.hasExpired(1000));
+    while(!timer.hasExpired(2000));
     QByteArray data = m_port->readAll();
     qDebug() << "recive data " << data.toHex();
     if(!data.isEmpty())

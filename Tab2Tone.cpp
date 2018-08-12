@@ -13,7 +13,7 @@ const QMap<QString, quint8> codeMap = {
   {"CC", 14}, {"DD", 15}
 };
 const QMap<QString, quint8> actionMap = {
-  {"None", 0}, {"Squelch Off", 1},
+  {" None", 0}, {"Squelch Off", 1},
   {"Beep Tone", 2}, {"Beep Tone & Respond", 3}
 };
 
@@ -61,12 +61,15 @@ Tab2Tone::Tab2Tone(QWidget *parent) :
   m_a->setSuffix(tr("Hz"));
   m_b->setMinimum(380);
   m_b->setMaximum(3000);
+  m_b->setValue(400);
   m_b->setSuffix(tr("Hz"));
   m_c->setMinimum(380);
   m_c->setMaximum(3000);
+  m_c->setValue(420);
   m_c->setSuffix(tr("Hz"));
   m_d->setMinimum(380);
   m_d->setMaximum(3000);
+  m_d->setValue(440);
   m_d->setSuffix(tr("Hz"));
   m_pretime->setMinimum(500);
   m_pretime->setMaximum(1000);
@@ -87,6 +90,14 @@ quint16 convertFrequence(int freq)
   int n = trunc(0.042666 * freq);
   int r = round((0.04266 * freq - n) * 6000 / freq);
   return ((n << 5) & 0x0fe0) | (r & 0x000f);
+}
+
+int convertFrequence(quint16 data)
+{
+  int N = (data & 0x0fe0) >> 5;
+  int R = data & 0x001f;
+  int f=round(1500000*N/(63999-250*R));
+  return f;
 }
 
 QByteArray Tab2Tone::toWrite() const
@@ -127,13 +138,13 @@ void Tab2Tone::read(QByteArray &data)
   stream.setByteOrder(QDataStream::BigEndian);
   quint16 value;
   stream >> value;
-  m_a->setValue(value);
+  m_a->setValue(convertFrequence(value));
   stream >> value;
-  m_b->setValue(value);
+  m_b->setValue(convertFrequence(value));
   stream >> value;
-  m_c->setValue(value);
+  m_c->setValue(convertFrequence(value));
   stream >> value;
-  m_d->setValue(value);
+  m_d->setValue(convertFrequence(value));
   stream >> value;
   m_pretime->setValue(value);
   stream >> value;

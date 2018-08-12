@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 
 const QMap<QString, quint8> actionMap = {
-  {"None", 0}, {"Squelch Off", 1},
+  {" None", 0}, {"Squelch Off", 1},
   {"Beep Tone", 2}, {"Beep Tone & Respond", 3}
 };
 typedef QPair<qint16, QRegExp> DecodeStandart;
@@ -141,10 +141,10 @@ QString convertToText(const QByteArray &data)
   for(int i=0,l=data.size(); i<l; i++)
   {
     if(data[i] == 0)
-      break;
-    str += QString::number(data[i] - 0x10);
+      continue;
+    str += QString::number(data[i] - 0x10, 16);
   }
-  return str;
+  return str.toUpper();
 }
 
 QByteArray Tab5Tone::toWrite() const
@@ -172,16 +172,19 @@ QByteArray Tab5Tone::toWrite() const
   for(int i=0; i<100; i++)
   {
     QString str = m_specialCall[i]->text();
-    stream << convertFromText(str, 12);
+    data.append(convertFromText(str, 12));
   }
   QString str = m_start->text();
-  stream << convertFromText(str, 12);
+//  stream << convertFromText(str, 12);
+  data.append(convertFromText(str, 12));
   str = m_end->text();
-  stream << convertFromText(str, 12);
+  data.append(convertFromText(str, 12));
+//  stream << convertFromText(str, 12);
   for(int i=0; i<4; i++)
   {
     str = m_decode[i].first->text();
-    stream << convertFromText(str, 12);
+//    stream << convertFromText(str, 12);
+    data.append(convertFromText(str, 12));
   }
   return data;
 }
@@ -196,7 +199,7 @@ void Tab5Tone::read(QByteArray &data)
       end=decodeStandartMap.end(); it!=end; it++)
     if(it.value().first == value)
     {
-      m_decodeStandart->currentText() = it.key();
+      m_decodeStandart->setCurrentText(it.key());
       break;
     }
   stream >> value;
@@ -216,16 +219,16 @@ void Tab5Tone::read(QByteArray &data)
   for(int i=0; i<100; i++)
   {
     stream.readRawData(dataPart, 12);
-    m_specialCall[i]->setText(convertToText(dataPart));
+    m_specialCall[i]->setText(convertToText(QByteArray(dataPart, 12)));
   }
   stream.readRawData(dataPart, 12);
-  m_start->setText(convertToText(dataPart));
+  m_start->setText(convertToText(QByteArray(dataPart, 12)));
   stream.readRawData(dataPart, 12);
-  m_end->setText(convertToText(dataPart));
+  m_end->setText(convertToText(QByteArray(dataPart, 12)));
   for(int i=0; i<4; i++)
   {
     stream.readRawData(dataPart, 12);
-    m_decode[i].first->setText(convertToText(dataPart));
+    m_decode[i].first->setText(convertToText(QByteArray(dataPart, 12)));
   }
 }
 

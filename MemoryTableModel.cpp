@@ -283,27 +283,37 @@ void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
     mem.chName.clear();
     return;
   }
-  mem.del = mem.lock = mem.scan = data[0];
+  mem.del = data[0] & 0x80;
+  mem.lock = data[0] & 0x40;
+  mem.scan = data[0] & 0x20;
   quint16 freq = data[2];
   freq <<= 8;
-  freq |= data[3];
+  freq |= data[3] & 0x00ff;
   mem.rxFrStep625 = freq & 0x8000;
-  mem.rxFrequence = (freq & 0x7fff) *
-      (mem.rxFrStep625 ? 6.250 : 5.000) / 1000.0;
+  freq = freq & 0x7fff;
+  double freqF = freq * (mem.rxFrStep625 ? 6.250 : 5.000);
+  freqF /= 1000.0;
+  mem.rxFrequence = freqF;/*(freq & 0x7fff) *
+      (mem.rxFrStep625 ? 6.250 : 5.000) / 1000.0;*/
   freq = data[4];
   freq = (freq << 8) & 0xff00;
-  freq |= data[5];
+  freq |= data[5] & 0x00ff;
   mem.txFrStep625 = freq & 0x8000;
   mem.txFrequence = (freq & 0x7fff) *
           (mem.rxFrStep625 ? 6.250 : 5.000) / 1000.0;
   mem.decode = data[6];
   mem.decode = (mem.decode << 8) & 0xff00;
-  mem.decode |= data[7];
+  mem.decode |= data[7] & 0x00ff;
   mem.encode = data[8];
   mem.encode = (mem.encode << 8) & 0xff00;
-  mem.encode |= data[9];
-  mem.begin = mem.end = mem.toneMode = data[10];
-  mem.bandwidth = mem.scrambler = mem.compander = mem.powerOut = data[11];
+  mem.encode |= data[9] & 0x00ff;
+  mem.begin = data[10] & 0x04;
+  mem.end = data[10] & 0x08;
+  mem.toneMode = data[10] & 0x03;
+  mem.bandwidth = data[11] & 0x10;
+  mem.scrambler = data[11] & 0x08;
+  mem.compander = data[11] & 0x04;
+  mem.powerOut = data[11] & 0x03;
   QString str;
   for(int i = 12; i < 19; i++)
     str.append(data[i]);
@@ -565,7 +575,7 @@ Qt::ItemFlags MemoryTableModel::flags(const QModelIndex &index) const
   if(row == 0 || column == 0)
   {
     return Qt::ItemIsEnabled;
-  }  
+  }
   row--;
   if(column <= 11 && column > 8 && m_memory[row].toneMode == 0)
   {

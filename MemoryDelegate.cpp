@@ -39,6 +39,8 @@ void MemoryDelegate::paint(QPainter *painter,
     style.rect = option.rect;
     style.state = index.data().toBool() ? QStyle::State_On
                                         : QStyle::State_Off;
+    style.state |= index.flags() & Qt::ItemIsEnabled ? QStyle::State_Enabled
+                                                     : QStyle::State_None;
     QApplication::style()->drawControl(QStyle::CE_CheckBox,
                                        &style, painter);
     return;

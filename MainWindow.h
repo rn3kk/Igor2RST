@@ -17,6 +17,8 @@ public slots:
   void write();
   void radioConnect(const QString &name,
                     const QString &version);
+  void importData();
+  void exportData();
 
 private:
   class Tab2Tone *m_tone2;

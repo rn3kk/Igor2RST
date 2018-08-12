@@ -6,9 +6,11 @@
 #include "Tab5Tone.h"
 
 #include <QFile>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QHeaderView>
 #include <QLabel>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QStackedLayout>
 #include <QStatusBar>
@@ -16,6 +18,8 @@
 #include <QTableView>
 #include <QTextStream>
 #include <QVBoxLayout>
+
+static const QString FILE_MASK = "*.yot";
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent), m_tone2(new Tab2Tone),
@@ -65,6 +69,16 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(button, SIGNAL(clicked(bool)),
           this, SLOT(write()));
   hl->addWidget(button);
+  button = new QPushButton(tr("Import"));
+  button->setObjectName("Write");
+  connect(button, SIGNAL(clicked(bool)),
+          this, SLOT(importData()));
+  hl->addWidget(button);
+  button = new QPushButton(tr("Export"));
+  button->setObjectName("Write");
+  connect(button, SIGNAL(clicked(bool)),
+          this, SLOT(exportData()));
+  hl->addWidget(button);
 
 
   tabs->addTab(tr("CH Information"));
@@ -111,4 +125,48 @@ void MainWindow::radioConnect(const QString &name, const QString &version)
   m_name->setText(name);
   m_version->setText(version);
   m_busy->setText("");
+}
+
+void MainWindow::importData()
+{
+  QString fileName = QFileDialog::getOpenFileName(this, tr("Open"), QString(), FILE_MASK);
+  if(fileName.isEmpty())
+    return;
+  QFile file(fileName);
+  if(!file.open(QFile::ReadOnly))
+  {
+    QMessageBox::critical(this, tr("Error"),
+                          tr("Open file %1 error:\n %2").arg(fileName, file.errorString()));
+    return;
+  }
+  QDataStream stream(&file);
+  QByteArray tone2, tone5;
+  QByteArrayList memory;
+  stream >> tone2 >> tone5 >> memory;
+  m_tone2->read(tone2);
+  m_tone5->read(tone5);
+  m_memory->read(memory);
+  file.close();
+}
+
+void MainWindow::exportData()
+{
+  QString fileName = QFileDialog::getSaveFileName(this, tr("Save"), QString(), FILE_MASK);
+  if(fileName.isEmpty())
+    return;
+  QFile file(fileName);
+  if(!file.open(QFile::WriteOnly))
+  {
+    QMessageBox::critical(this, tr("Error"),
+                          tr("Open file %1 error:\n %2").arg(fileName, file.errorString()));
+    return;
+  }
+  QDataStream stream(&file);
+  QByteArray tone2, tone5;
+  QByteArrayList memory;
+  tone2 = m_tone2->toWrite();
+  tone5 = m_tone5->toWrite();
+  memory = m_memory->toWrite(true);
+  stream << tone2 << tone5 << memory;
+  file.close();
 }
