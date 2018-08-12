@@ -72,9 +72,9 @@ quint16 crc(const QByteArray &data, int numByte)
     }
   }
   while(--numByte);
-  qDebug() << "AAAbefore W0=" << QString::number(w0, 16);
+
   w0 = ((w0 << 8) & 0xff00) | ((w0 >> 8) & 0x00ff);
-  qDebug() << "AAAafter W0=" << QString::number(w0, 16);
+  qDebug() << "Anr CRC=" << QString::number(w0, 16);
   return w0;
 }
 
