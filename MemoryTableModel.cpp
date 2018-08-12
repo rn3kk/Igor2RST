@@ -202,7 +202,7 @@ QByteArrayList MemoryTableModel::toWrite(bool toFile) const
       else
       {
         data.append('\x01');
-        quint8 num = i;
+        quint8 num = i+1;
         data.append(num);
       }
       data.append('\0').append(0x14);
@@ -304,9 +304,13 @@ void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
   mem.decode = data[6];
   mem.decode = (mem.decode << 8) & 0xff00;
   mem.decode |= data[7] & 0x00ff;
+  if(mem.decode & 0x0300 == 0x0100)
+    mem.decode = 0;
   mem.encode = data[8];
   mem.encode = (mem.encode << 8) & 0xff00;
   mem.encode |= data[9] & 0x00ff;
+  if(mem.encode & 0x0300 == 0x0100)
+    mem.encode ^= 0x0300;
   mem.begin = data[10] & 0x04;
   mem.end = data[10] & 0x08;
   mem.toneMode = data[10] & 0x03;

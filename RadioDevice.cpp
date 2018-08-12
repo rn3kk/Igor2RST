@@ -119,8 +119,8 @@ void RadioDevice::reconnect()
     '\x53', '\x4B', '\x4F', '\x52', '\x41', '\x4A', '\x41', '\x00', '\x9A', '\xB0'
   };
  // QByteArray data(dataPtr, 28);
-  QByteArray data = QByteArray::fromHex("210A0100001400FF19C819C800000000000043484E414D452000B4AC");
-  quint16 result = crc(data, 26);*/
+  QByteArray data = QByteArray::fromHex("210c00000005000a000103a7032602a40221");
+  quint16 result = crc(data, data.size());*/
   if(!m_mutex->tryLock(1))
     return;
   if(m_port != nullptr)
@@ -151,7 +151,7 @@ void RadioDevice::reconnect()
       QThread::currentThread()->msleep(5);
       qApp->processEvents(QEventLoop::AllEvents, 10);
     }
-    while(!timer.hasExpired(2000));
+    while(!timer.hasExpired(5000));
     QByteArray data = m_port->readAll();
     qDebug() << "recive data " << data.toHex();
     if(!data.isEmpty())
@@ -350,12 +350,12 @@ void RadioDevice::writeRegistry(const QByteArray &data)
   stream << command;
   quint16 dat = 0;
   stream << dat;
-  dat = 0x0005;
+  dat = data.size() / 2;
   stream << dat;
-  dat = 0x000a;
+  dat = data.size();
   stream << dat;
-  request.append(data.left(10));
-  quint16 checksum = crc(request, 26);
+  request.append(data);//.left(10));
+  quint16 checksum = crc(request, request.size());
   request.append(checksum >> 8);
   request.append(checksum & 0x00ff);
   QElapsedTimer allTimer;
