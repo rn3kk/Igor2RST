@@ -397,7 +397,7 @@ QVariant MemoryTableModel::data(const QModelIndex &index, int role) const
   if(role == Qt::DisplayRole && m_memory[row - 1].chName.isEmpty())
     return QVariant();
   if(role == Qt::EditRole && m_memory[row - 1].chName.isEmpty())
-    m_memory[row - 1].chName = tr("CHNAME");
+    m_memory[row - 1].chName = tr("      ");
   switch(column)
   {
   case 1:
