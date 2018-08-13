@@ -29,7 +29,7 @@ struct MemoryItem
 static const int ITEM_COUNT = 208;
 
 static const QMap<QString, qint8> bandwidthMap = {{"W", 0}, {"N", 0x16}};
-static const QMap<QString, qint8> powerOutMap = {{"H", 2}, {"M", 1}, {"L", 0}};
+static const QMap<QString, qint8> powerOutMap = {{"  H", 2}, {" M", 1}, {"L", 0}};
 static const QMap<QString, qint16>  decodeMap =
 {
   {" OFF", 0x0000}, {"01-67.0", 0x02C9}, {"02-71.9", 0x02CA}, {"03-74.4", 0x02CB},
@@ -259,7 +259,7 @@ QByteArray MemoryTableModel::memoryItem(int index) const
 void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
 {
   MemoryItem &mem = m_memory[number];
-  if(data[0] == '\xff' && data[1] == '\xff')
+  if(data[1] != '\x24')
   {
     mem.changed = false;
     mem.decode = 0x0000;
@@ -320,8 +320,6 @@ void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
   QString str;
   for(int i = 12; i < 19; i++)
     str.append(data[i]);
-  if(str == "       ")
-    str.clear();
   mem.chName = str;
   mem.call = data[19];
   mem.changed = false;

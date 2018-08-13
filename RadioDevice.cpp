@@ -4,6 +4,7 @@
 #include <QDataStream>
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QMessageBox>
 #include <QMutex>
 #include <QSerialPort>
 #include <QSerialPortInfo>
@@ -17,6 +18,11 @@ RadioDevice::RadioDevice(QObject *parent) :
 void RadioDevice::read(QByteArrayList &chData, QByteArray &tone2,
                        QByteArray &tone5)
 {
+  if(m_port == nullptr)
+  {
+    QMessageBox::critical(nullptr, tr("Error"), tr("Device is not connected"));
+    return;
+  }
   qDebug() << "-------------------------------read----------------------------------------\n\t"
               "----------------------------------------------------------------------------------------";
   chData.clear();
@@ -55,6 +61,11 @@ void RadioDevice::write(const QByteArrayList &chData,
                         const QByteArray &tone2,
                         const QByteArray &tone5)
 {
+  if(m_port == nullptr)
+  {
+    QMessageBox::critical(nullptr, tr("Error"), tr("Device is not connected"));
+    return;
+  }
     qDebug() << "---------------------------------write-----------------------------\n\t"
                 "----------------------------------------------------------------------------------------";
   QByteArray debugMsg;
@@ -166,7 +177,9 @@ void RadioDevice::reconnect()
             m_adress = data[0];
             emit connected(name, version);
             readMemory(1);
-            break;
+            m_mutex->unlock();
+            QMessageBox::information(nullptr, tr("Connected"), tr("Connect to device is sucefull"));
+            return;
         }
     }
     m_port->close();
@@ -175,6 +188,7 @@ void RadioDevice::reconnect()
   }
   qDebug("exit from connect");
   m_mutex->unlock();
+  QMessageBox::critical(nullptr, tr("Error connect"), tr("Radio device not found"));
 }
 
 bool RadioDevice::isValidPackage(const QByteArray &packet)

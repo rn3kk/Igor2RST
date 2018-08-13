@@ -19,6 +19,7 @@ public slots:
                     const QString &version);
   void importData();
   void exportData();
+  void help();
 
 private:
   class Tab2Tone *m_tone2;
@@ -28,6 +29,7 @@ private:
   QLabel *m_version;
   QLabel *m_busy;
   class RadioDevice *m_device;
+  class QTextBrowser *m_about;
 };
 
 #endif // MAINWINDOW_H

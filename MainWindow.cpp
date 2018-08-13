@@ -16,7 +16,9 @@
 #include <QStatusBar>
 #include <QTabBar>
 #include <QTableView>
+#include <QTextBrowser>
 #include <QTextStream>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 static const QString FILE_MASK = "*.yot";
@@ -26,7 +28,8 @@ MainWindow::MainWindow(QWidget *parent) :
   m_tone5(new Tab5Tone), m_memory(new MemoryTableModel(*m_tone5)),
   m_name(new QLabel), m_version(new QLabel),
   m_busy(new QLabel),
-  m_device(new RadioDevice)
+  m_device(new RadioDevice),
+  m_about(new QTextBrowser)
 {
   QStatusBar *status = new QStatusBar(this);
   setStatusBar(status);
@@ -79,7 +82,11 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(button, SIGNAL(clicked(bool)),
           this, SLOT(exportData()));
   hl->addWidget(button);
-
+  QToolButton *tbutton = new QToolButton;
+  tbutton->setText(tr("?"));
+  connect(tbutton, SIGNAL(clicked(bool)),
+          this, SLOT(help()));
+  hl->addWidget(tbutton);
 
   tabs->addTab(tr("CH Information"));
   tabs->addTab(tr("2 TONE"));
@@ -97,6 +104,7 @@ MainWindow::MainWindow(QWidget *parent) :
           SLOT(radioConnect(QString,QString)));
 
   setMinimumSize(1020, 500);
+  m_about->hide();
 }
 
 void MainWindow::read()
@@ -169,4 +177,12 @@ void MainWindow::exportData()
   memory = m_memory->toWrite(true);
   stream << tone2 << tone5 << memory;
   file.close();
+}
+
+void MainWindow::help()
+{
+  QFile file("AR-43.txt");
+  if(file.open(QFile::ReadOnly))
+    m_about->document()->setHtml(QString::fromLocal8Bit(file.readAll()));
+  m_about->show();
 }
