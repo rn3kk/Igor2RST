@@ -56,12 +56,12 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
   for(int i=0; i<4; i++)
   {
     LineEdit *code = new LineEdit;
-    static QRegExpValidator validator(QRegExp("[0-9A-F]{,5}"));
+    static QRegExpValidator validator(QRegExp("[0-9A-F]{,12}"));
     code->setValidator(&validator);
 //    code->setInputMask(">HHHHH");
-    code->setText("12345");
-    connect(code, SIGNAL(textEdited(QString)),
-            SLOT(decodeChanged(QString)));
+//    code->setText("12345");
+    connect(code, SIGNAL(textChanged(QString)),
+            this, SLOT(replaceRepeatSymbol(QString)));
     gl->addWidget(code, i, 0);
     QComboBox *action = new QComboBox;
     action->addItems(actionMap.keys());
@@ -84,7 +84,7 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
 //    edit->setInputMask(">HHHHHHHHHHHH");
     fl->addRow(QString::number(i), edit);
     m_specialCall[i - 1] = edit;
-    connect(edit, SIGNAL(textEdited(QString)),
+    connect(edit, SIGNAL(textChanged(QString)),
             SLOT(replaceRepeatSymbol(QString)));
   }
   m_start->setValidator(&validator);
@@ -105,9 +105,9 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
           this, SLOT(newDecodeStandart(QString)));
   m_decodeStandart->setCurrentText("EEA");
 
-  connect(m_start, SIGNAL(textEdited(QString)),
+  connect(m_start, SIGNAL(textChanged(QString)),
           SLOT(replaceRepeatSymbol(QString)));
-  connect(m_end, SIGNAL(textEdited(QString)),
+  connect(m_end, SIGNAL(textChanged(QString)),
           SLOT(replaceRepeatSymbol(QString)));
 }
 
@@ -239,10 +239,10 @@ void Tab5Tone::newDecodeStandart(const QString &value)
 
 void Tab5Tone::decodeChanged(QString value)
 {
-  if(value.isEmpty())
-    value = "12345";
-  while(value.size() < 5)
-    value.append(value.at(value.length() - 1));
+//  if(value.isEmpty())
+//    value = "12345";
+//  while(value.size() < 5)
+//    value.append(value.at(value.length() - 1));
   replaceRepeatSymbol(value, qobject_cast<LineEdit*>(sender()));
 }
 

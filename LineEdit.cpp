@@ -38,20 +38,24 @@ void LineEdit::validatorCanged()
 void LineEdit::keyPressEvent(QKeyEvent *event)
 {
   int key = event->key();
-  if(key == Qt::Key_Backspace || key == Qt::Key_Left ||
-     key == Qt::Key_Delete || key == Qt::Key_Right
-     )
+  if((key >= Qt::Key_0 && key <= Qt::Key_9) ||
+     (key >= Qt::Key_A && key <= Qt::Key_Z))
+  {
+    QString value = text();
+    int position = cursorPosition();
+    if(selectionStart() > -1)
+      value = value.remove(selectionStart(), selectedText().length());
+    value = value.insert(position, event->text()).toUpper();
+    int pos = 0;
+    if(validator()->validate(value, pos) == QValidator::Acceptable)
+    {
+      setText(value);
+      setCursorPosition(++position);
+    }
+  }
+  else
   {
     QLineEdit::keyPressEvent(event);
     return;
-  }
-  QString value = text();
-  int position = cursorPosition();
-  value = value.insert(position, event->text()).toUpper();
-  int pos = 0;
-  if(validator()->validate(value, pos) == QValidator::Acceptable)
-  {
-    setText(value);
-    setCursorPosition(++position);
   }
 }

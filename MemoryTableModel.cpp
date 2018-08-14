@@ -303,12 +303,12 @@ void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
   mem.decode = data[6];
   mem.decode = (mem.decode << 8) & 0xff00;
   mem.decode |= data[7] & 0x00ff;
-  if(mem.decode & 0x0300 == 0x0100)
+  if((mem.decode & 0x0300) == 0x0100)
     mem.decode = 0;
   mem.encode = data[8];
   mem.encode = (mem.encode << 8) & 0xff00;
   mem.encode |= data[9] & 0x00ff;
-  if(mem.encode & 0x0300 == 0x0100)
+  if((mem.encode & 0x0300) == 0x0100)
     mem.encode ^= 0x0300;
   mem.begin = data[10] & 0x04;
   mem.end = data[10] & 0x08;
@@ -422,7 +422,7 @@ QVariant MemoryTableModel::data(const QModelIndex &index, int role) const
       switch(m_memory[row - 1].toneMode)
       {
       case 1: return codeMap.key(m_memory[row - 1].call);
-      case 2: return m_5tone.numbers().at(m_memory[row - 1].call);
+      case 2: return m_memory[row - 1].call;
       }
     return "OFF";
   case 12: return m_memory[row - 1].compander;
@@ -490,8 +490,8 @@ bool MemoryTableModel::setData(const QModelIndex &index,
   if(row == 0 || column == 0)
     return false;
 
-  QModelIndex start = MemoryTableModel::index(row, 7),
-      end = MemoryTableModel::index(row + 1, 16);
+//  QModelIndex start = MemoryTableModel::index(row, 7),
+//      end = MemoryTableModel::index(row + 1, 16);
   row--;
   m_memory[row].changed = true;
   switch(column)
@@ -523,7 +523,13 @@ bool MemoryTableModel::setData(const QModelIndex &index,
     return true;
   case 8:
     m_memory[row].toneMode = toneModeMap[value.toString()];
-    emit dataChanged(index, index);
+    if(m_memory[row].toneMode == 0)
+    {
+      m_memory[row].begin = 0;
+      m_memory[row].end = 0;
+    }
+    m_memory[row].call = 0;
+    emit layoutChanged();
     return true;
   case 9:
     m_memory[row].begin = value.toBool() ? 0x04 : 0;
@@ -535,11 +541,11 @@ bool MemoryTableModel::setData(const QModelIndex &index,
     {
     case 1:
       m_memory[row].call = codeMap[value.toString()];
-      emit dataChanged(index, index);
+      emit layoutChanged();
       return true;
     case 2:
       m_memory[row].call = value.toInt();
-      emit dataChanged(index, index);
+      emit layoutChanged();
       return true;
     }
   case 12:
@@ -556,11 +562,11 @@ bool MemoryTableModel::setData(const QModelIndex &index,
     return true;
   case 15:
     m_memory[row].del = value.toBool() ? 0x80 : 0;
-    emit dataChanged(start, end);
+    emit layoutChanged();
     return true;
   case 16:
     m_memory[row].lock = value.toBool() ? 0x40 : 0;
-    emit dataChanged(start, end);
+    emit layoutChanged();
     return true;
   }
   emit layoutChanged();

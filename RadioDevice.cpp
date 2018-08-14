@@ -275,7 +275,7 @@ QByteArray RadioDevice::readRegistry()
   stream << m_adress;
   quint8 command = 0x0b;
   stream << command;
-  quint32 dat = 0x0000026d;
+  quint32 dat = 0x00000291;
   stream << dat;
   quint16 checksum = crc(request, 6);
   stream << checksum;
