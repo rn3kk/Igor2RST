@@ -269,7 +269,7 @@ QByteArray RadioDevice::readMemory(int index)
 
 QByteArray RadioDevice::readRegistry()
 {
-  const int responseLen = 1248;
+  const int responseLen = 1320;
   QByteArray request;
   QDataStream stream(&request, QIODevice::WriteOnly);
   stream << m_adress;
