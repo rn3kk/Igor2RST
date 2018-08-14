@@ -303,7 +303,7 @@ QByteArray RadioDevice::readRegistry()
     if(response.size() >= responseLen && isValidPackage(response))
     {
       qDebug() << "recive package ";
-      return response.mid(4, 1242);
+      return response.mid(4, 1314);
     }
     else
       qCritical("read registry recive error");
