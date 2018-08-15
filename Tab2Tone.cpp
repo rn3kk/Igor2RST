@@ -83,6 +83,15 @@ Tab2Tone::Tab2Tone(QWidget *parent) :
   m_start->setCurrentText("AB");
   m_end->addItems(codeMap.keys());
   m_end->setCurrentText("AB");
+
+  connect(m_a, SIGNAL(valueChanged(int)),
+          SLOT(correctFrequency(int)));
+  connect(m_b, SIGNAL(valueChanged(int)),
+          SLOT(correctFrequency(int)));
+  connect(m_c, SIGNAL(valueChanged(int)),
+          SLOT(correctFrequency(int)));
+  connect(m_d, SIGNAL(valueChanged(int)),
+          SLOT(correctFrequency(int)));
 }
 
 quint16 convertFrequence(int freq)
@@ -105,19 +114,12 @@ QByteArray Tab2Tone::toWrite() const
   QByteArray data;
   QDataStream stream(&data, QIODevice::WriteOnly);
   stream.setByteOrder(QDataStream::BigEndian);
-  quint16 value; //= m_a->value();
+  quint16 value;
   value = convertFrequence(m_a->value());
   stream << value
          << convertFrequence(m_b->value())
          << convertFrequence(m_c->value())
          << convertFrequence(m_d->value());
-//  stream << value;
-//  value = m_b->value();
-//  stream << value;
-//  value = m_c->value();
-//  stream << value;
-//  value = m_d->value();
-//  stream << value;
   value = m_pretime->value();
   stream << value;
   value = m_response->value() * 1000;
@@ -163,4 +165,11 @@ void Tab2Tone::read(QByteArray &data)
   stream >> value;
   ch = value;
   m_end->setCurrentText(codeMap.key(ch));
+}
+
+void Tab2Tone::correctFrequency(int value)
+{
+  QSpinBox *box = qobject_cast<QSpinBox*>(sender());
+  quint16 converted = convertFrequence(value);
+  box->setValue(convertFrequence(converted));
 }

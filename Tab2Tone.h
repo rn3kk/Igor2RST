@@ -17,6 +17,9 @@ public:
   QByteArray toWrite() const;
   void read(QByteArray &data);
 
+public slots:
+  void correctFrequency(int value);
+
 signals:
 
 private:
