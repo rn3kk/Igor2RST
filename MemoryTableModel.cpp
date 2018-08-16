@@ -193,10 +193,10 @@ QByteArrayList MemoryTableModel::toWrite(bool toFile) const
     else if(m_memory[i].changed)
     {
       QByteArray data;
-      if(i > 199)
+      if(i >= 199)
       {
         data.append('\x0c');
-        quint8 num = i - 199;
+        quint8 num = i - 198;
         data.append(num);
       }
       else
@@ -308,7 +308,7 @@ void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
   mem.encode = data[8];
   mem.encode = (mem.encode << 8) & 0xff00;
   mem.encode |= data[9] & 0x00ff;
-  if((mem.encode & 0x0300) == 0x0100)
+  if((mem.encode & 0x0300) == 0x0200)
     mem.encode ^= 0x0300;
   mem.begin = data[10] & 0x04;
   mem.end = data[10] & 0x08;
@@ -535,7 +535,10 @@ bool MemoryTableModel::setData(const QModelIndex &index,
     m_memory[row].begin = value.toBool() ? 0x04 : 0;
     emit layoutChanged();
     return true;
-  case 10: m_memory[row].end = value.toBool() ? 0x08 : 0;
+  case 10:
+    m_memory[row].end = value.toBool() ? 0x08 : 0;
+    emit layoutChanged();
+    return true;
   case 11:
     switch(m_memory[row].toneMode)
     {
@@ -548,6 +551,7 @@ bool MemoryTableModel::setData(const QModelIndex &index,
       emit layoutChanged();
       return true;
     }
+    break;
   case 12:
     m_memory[row].compander = value.toBool() ? 0x04 : 0;
     emit layoutChanged();
