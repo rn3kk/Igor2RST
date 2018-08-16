@@ -105,7 +105,7 @@ int convertFrequence(quint16 data)
 {
   int N = (data & 0x0fe0) >> 5;
   int R = data & 0x001f;
-  int f=round(1500000*N/(63999-250*R));
+  int f=round(1500000.0*N/(63999-250*R));
   return f;
 }
 

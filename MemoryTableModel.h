@@ -11,7 +11,7 @@ public:
   MemoryTableModel(Tab5Tone &tab5);
   ~MemoryTableModel();
 
-  void read(const QByteArrayList &data);
+  void read(const QByteArrayList &data, bool import);
   QByteArrayList toWrite(bool toFile) const;
 
   QStringList variants(int column, int row);
@@ -27,9 +27,9 @@ public:
 private:
   struct MemoryItem *m_memory;
   Tab5Tone &m_5tone;
-  
+
   QByteArray memoryItem(int number) const;
-  void setMemoryItem(const QByteArray &data, int number);
+  void setMemoryItem(const QByteArray &data, int number, bool import);
 };
 
 #endif // MEMORYTABLEMODEL_H

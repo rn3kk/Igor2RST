@@ -28,7 +28,7 @@ struct MemoryItem
 
 static const int ITEM_COUNT = 208;
 
-static const QMap<QString, qint8> bandwidthMap = {{"W", 0}, {"N", 0x16}};
+static const QMap<QString, qint8> bandwidthMap = {{"W", 0}, {"N", 0x10}};
 static const QMap<QString, qint8> powerOutMap = {{"  H", 2}, {" M", 1}, {"L", 0}};
 static const QMap<QString, qint16>  decodeMap =
 {
@@ -172,7 +172,7 @@ MemoryTableModel::~MemoryTableModel()
   delete[] m_memory;
 }
 
-void MemoryTableModel::read(const QByteArrayList &data)
+void MemoryTableModel::read(const QByteArrayList &data, bool import)
 {
   if(data.size() < ITEM_COUNT)
   {
@@ -180,7 +180,7 @@ void MemoryTableModel::read(const QByteArrayList &data)
     return;
   }
   for(int i = 0; i < ITEM_COUNT; i++)
-    setMemoryItem(data[i], i);
+    setMemoryItem(data[i], i, import);
   emit layoutChanged();
 }
 
@@ -256,12 +256,12 @@ QByteArray MemoryTableModel::memoryItem(int index) const
   return data;
 }
 
-void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
+void MemoryTableModel::setMemoryItem(const QByteArray &data, int number, bool import)
 {
   MemoryItem &mem = m_memory[number];
+  mem.changed = import;
   if(data[1] != '\x24')
   {
-    mem.changed = false;
     mem.decode = 0x0000;
     mem.encode = 0x0000;
     mem.rxFrStep625 = false;
@@ -322,7 +322,6 @@ void MemoryTableModel::setMemoryItem(const QByteArray &data, int number)
     str.append(data[i]);
   mem.chName = str;
   mem.call = data[19];
-  mem.changed = false;
 }
 
 QStringList MemoryTableModel::variants(int column, int row)

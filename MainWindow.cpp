@@ -113,7 +113,7 @@ void MainWindow::read()
   QByteArray tone2, tone5;
   m_busy->setText(tr("read data from device"));
   m_device->read(memory, tone2, tone5);
-  m_memory->read(memory);
+  m_memory->read(memory, false);
   m_tone2->read(tone2);
   m_tone5->read(tone5);
   m_busy->setText("");
@@ -153,7 +153,7 @@ void MainWindow::importData()
   stream >> tone2 >> tone5 >> memory;
   m_tone2->read(tone2);
   m_tone5->read(tone5);
-  m_memory->read(memory);
+  m_memory->read(memory, true);
   file.close();
 }
 
