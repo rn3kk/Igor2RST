@@ -4,6 +4,7 @@
 #include <QFormLayout>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QMutex>
 #include <qcombobox.h>
 
 const QMap<QString, quint8> codeMap = {
@@ -167,9 +168,17 @@ void Tab2Tone::read(QByteArray &data)
   m_end->setCurrentText(codeMap.key(ch));
 }
 
+static QMutex mutex;
+
 void Tab2Tone::correctFrequency(int value)
 {
-  QSpinBox *box = qobject_cast<QSpinBox*>(sender());
-  quint16 converted = convertFrequence(value);
-  box->setValue(convertFrequence(converted));
+  if(::mutex.tryLock(0))
+  {
+    QSpinBox *box = qobject_cast<QSpinBox*>(sender());
+    quint16 converted = convertFrequence(value);
+    int newValue = convertFrequence(converted);
+    if(newValue != value)
+      box->setValue(newValue);
+    ::mutex.unlock();
+  }
 }

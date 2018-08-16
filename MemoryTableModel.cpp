@@ -220,7 +220,7 @@ QByteArray MemoryTableModel::memoryItem(int index) const
   quint8 byte;
   if(mem.chName.isEmpty())
   {
-    data.append(data.fill(0xff, 20));
+    data.fill(0xff, 20);
   }
   else
   {
