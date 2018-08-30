@@ -131,7 +131,7 @@ QByteArray convertFromText(QString &text, int len)
   for(int i=0,l=text.size(); i<l; i++)
     result.append(text.mid(i, 1).toInt(nullptr, 16) + 0x10);
   while(result.size() < len)
-    result.prepend('\0');
+    result.append('\0');
   return result;
 }
 
