@@ -38,8 +38,9 @@ void LineEdit::validatorCanged()
 void LineEdit::keyPressEvent(QKeyEvent *event)
 {
   int key = event->key();
-  if((key >= Qt::Key_0 && key <= Qt::Key_9) ||
-     (key >= Qt::Key_A && key <= Qt::Key_Z))
+  if(!(event->modifiers() & Qt::ControlModifier) &&
+     ((key >= Qt::Key_0 && key <= Qt::Key_9) ||
+      (key >= Qt::Key_A && key <= Qt::Key_Z)))
   {
     QString value = text();
     int position = cursorPosition();
