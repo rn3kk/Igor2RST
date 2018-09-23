@@ -95,8 +95,8 @@ Tab5Tone::Tab5Tone(QWidget *parent) : QWidget(parent), m_decodeStandart(new QCom
   m_pretime->setMaximum(1000);
   m_pretime->setSingleStep(100);
   m_pretime->setSuffix(tr("ms"));
-  m_response->setMinimum(1);
-  m_response->setMaximum(3);
+  m_response->setMinimum(0.5);
+  m_response->setMaximum(2.5);
   m_response->setSingleStep(0.5);
   m_response->setSuffix(tr("s"));
 
